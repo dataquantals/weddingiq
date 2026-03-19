@@ -2,39 +2,29 @@ import { useState, useEffect, useCallback } from 'react'
 import { loadGuests, upsertGuest, deleteGuest as sbDelete, deleteGuestsBulk as sbDeleteBulk, uploadPhoto } from '../lib/supabase.js'
 import { uuid } from '../lib/helpers.js'
 
-const LS_KEY = 'wiq_guests'
-
-function fromLS() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY)) || [] } catch { return [] }
-}
-function toLS(guests) {
-  localStorage.setItem(LS_KEY, JSON.stringify(guests))
-}
-
-export function useGuests() {
-  const [guests,  setGuests]  = useState(fromLS)
+export function useGuests(user) {
+  const [guests,  setGuests]  = useState([])
   const [loading, setLoading] = useState(true)
-
-  // Persist to localStorage whenever guests change
-  useEffect(() => { toLS(guests) }, [guests])
 
   // Load from Supabase on mount
   useEffect(() => {
-    loadGuests()
-      .then(data => { if (data.length) setGuests(data) })
+    if (!user) { setGuests([]); setLoading(false); return }
+    setLoading(true)
+    loadGuests(user.id)
+      .then(data => { setGuests(data) })
       .catch(e => console.warn('load:', e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [user])
 
   const addGuest = useCallback(async (data, photoFile) => {
     const id = uuid()
     let photo_url = null
     if (photoFile) photo_url = await uploadPhoto(id, photoFile)
-    const guest = { ...data, id, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString(), photo_url }
+    const guest = { ...data, id, user_id: user.id, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString(), photo_url }
     setGuests(prev => [...prev, guest])
     upsertGuest(guest)
     return guest
-  }, [])
+  }, [user])
 
   const updateGuest = useCallback(async (id, data, photoFile) => {
     let photo_url = undefined
@@ -43,7 +33,7 @@ export function useGuests() {
     const updated = { ...guests.find(g => g.id === id), ...data, ...(photo_url !== undefined ? { photo_url } : {}) }
     upsertGuest(updated)
     return updated
-  }, [guests])
+  }, [guests, user])
 
   const removeGuest = useCallback((id) => {
     setGuests(prev => prev.filter(g => g.id !== id))
@@ -70,11 +60,11 @@ export function useGuests() {
   }, [guests])
 
   const importBulk = useCallback(async (rows) => {
-    const newGuests = rows.map(r => ({ ...r, id: uuid(), qr_token: uuid(), checked_in: false, created_at: new Date().toISOString() }))
+    const newGuests = rows.map(r => ({ ...r, id: uuid(), user_id: user.id, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString() }))
     setGuests(prev => [...prev, ...newGuests])
     await upsertGuest(newGuests)
     return newGuests.length
-  }, [])
+  }, [user])
 
   const clearGuests = useCallback(async () => {
     const ids = guests.map(g => g.id)

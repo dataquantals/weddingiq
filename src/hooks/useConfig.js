@@ -1,20 +1,30 @@
 import { useState, useEffect } from 'react'
+import { loadWedding, upsertWedding } from '../lib/supabase.js'
 
-const LS_KEY = 'wiq_cfg'
-
-function fromLS() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY)) || null } catch { return null }
-}
-
-export function useConfig() {
-  const [config, setConfig] = useState(fromLS)
+export function useConfig(user) {
+  const [config, setConfig] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (config) localStorage.setItem(LS_KEY, JSON.stringify(config))
-  }, [config])
+    if (!user) { setConfig(null); setLoading(false); return }
+    setLoading(true)
+    loadWedding(user.id)
+      .then(data => { setConfig(data) })
+      .catch(e => console.warn('load wedding:', e.message))
+      .finally(() => setLoading(false))
+  }, [user])
 
-  const saveConfig = (data) => setConfig(data)
-  const updateConfig = (patch) => setConfig(prev => ({ ...prev, ...patch }))
+  const saveConfig = (data) => {
+    const payload = { ...data, user_id: user.id }
+    setConfig(payload)
+    upsertWedding(payload)
+  }
 
-  return { config, saveConfig, updateConfig }
+  const updateConfig = (patch) => {
+    const updated = { ...config, ...patch }
+    setConfig(updated)
+    upsertWedding(updated)
+  }
+
+  return { config, loading, saveConfig, updateConfig }
 }

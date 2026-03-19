@@ -3,8 +3,8 @@ import { SUPA_URL, SUPA_KEY } from './constants.js'
 
 export const sb = createClient(SUPA_URL, SUPA_KEY)
 
-export async function loadGuests() {
-  const { data, error } = await sb.from('guests').select('*').order('created_at', { ascending: true })
+export async function loadGuests(userId) {
+  const { data, error } = await sb.from('guests').select('*').eq('user_id', userId).order('created_at', { ascending: true })
   if (error) throw error
   return data || []
 }
@@ -32,4 +32,26 @@ export async function uploadPhoto(guestId, file) {
   if (error) { console.warn('photo upload:', error.message); return null }
   const { data } = sb.storage.from('guest-photos').getPublicUrl(path)
   return data.publicUrl
+}
+
+export async function loadWedding(userId) {
+  const { data, error } = await sb.from('weddings').select('*').eq('user_id', userId).single()
+  if (error && error.code !== 'PGRST116') throw error
+  return data
+}
+
+export async function upsertWedding(wedding) {
+  const { error } = await sb.from('weddings').upsert(wedding, { onConflict: 'user_id' })
+  if (error) console.warn('upsert wedding:', error.message)
+}
+
+export async function loadDesign(userId) {
+  const { data, error } = await sb.from('designs').select('*').eq('user_id', userId).single()
+  if (error && error.code !== 'PGRST116') throw error
+  return data
+}
+
+export async function upsertDesign(design) {
+  const { error } = await sb.from('designs').upsert(design, { onConflict: 'user_id' })
+  if (error) console.warn('upsert design:', error.message)
 }

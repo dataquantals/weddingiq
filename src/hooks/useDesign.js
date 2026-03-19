@@ -1,11 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DEFAULT_DESIGN } from '../lib/constants.js'
+import { loadDesign, upsertDesign } from '../lib/supabase.js'
 
-export function useDesign() {
+export function useDesign(user) {
   const [design,       setDesign]       = useState({ ...DEFAULT_DESIGN })
   const [theme,        setTheme]        = useState('mughal')
   const [bgImage,      setBgImage]      = useState(null)
   const [history,      setHistory]      = useState([])
+  const [loading,      setLoading]      = useState(true)
+
+  useEffect(() => {
+    if (!user) { setLoading(false); return }
+    loadDesign(user.id)
+      .then(data => {
+        if (data) {
+          setDesign(data.design || DEFAULT_DESIGN)
+          setTheme(data.theme || 'mughal')
+          setBgImage(data.bgImage || null)
+        }
+      })
+      .catch(e => console.warn('load design:', e.message))
+      .finally(() => setLoading(false))
+  }, [user])
+
+  const persist = useCallback(() => {
+    if (!user) return
+    upsertDesign({ user_id: user.id, design, theme, bgImage })
+  }, [user, design, theme, bgImage])
 
   const patchDesign = (patch) => {
     setHistory(h => [...h.slice(-4), { ...design }])
@@ -20,5 +41,7 @@ export function useDesign() {
 
   const updateField = (key, value) => setDesign(d => ({ ...d, [key]: value }))
 
-  return { design, theme, bgImage, history, setTheme, setBgImage, patchDesign, undo, updateField }
+  useEffect(() => { persist() }, [persist])
+
+  return { design, theme, bgImage, history, loading, setTheme, setBgImage, patchDesign, undo, updateField }
 }

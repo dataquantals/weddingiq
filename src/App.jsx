@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react'
-import { useConfig }   from './hooks/useConfig.js'
-import { useGuests }   from './hooks/useGuests.js'
-import { useDesign }   from './hooks/useDesign.js'
+import { useAuth }   from './hooks/useAuth.js'
+import { useConfig } from './hooks/useConfig.js'
+import { useGuests } from './hooks/useGuests.js'
+import { useDesign } from './hooks/useDesign.js'
 import Sidebar         from './components/Sidebar.jsx'
 import Toast           from './components/Toast.jsx'
+import AuthScreen      from './pages/AuthScreen.jsx'
 import ConfigScreen    from './pages/ConfigScreen.jsx'
 import Dashboard       from './pages/Dashboard.jsx'
 import GuestList       from './pages/GuestList.jsx'
@@ -30,15 +32,22 @@ const PAGE_META = {
 }
 
 export default function App() {
-  const { config, saveConfig, updateConfig } = useConfig()
-  const { guests, loading, addGuest, updateGuest, removeGuest, checkIn, setAiMessage, setPhotoUrl, importBulk, clearGuests } = useGuests()
-  const { design, theme, bgImage, history, setTheme, setBgImage, patchDesign, undo, updateField } = useDesign()
+  const { user, session, status, error, signUp, signIn, signOut } = useAuth()
+  const { config, loading: cfgLoading, saveConfig, updateConfig } = useConfig(user)
+  const { guests, loading: guestsLoading, addGuest, updateGuest, removeGuest, checkIn, setAiMessage, setPhotoUrl, importBulk, clearGuests } = useGuests(user)
+  const { design, theme, bgImage, history, loading: designLoading, setTheme, setBgImage, patchDesign, undo, updateField } = useDesign(user)
 
   const [page,    setPage]    = useState('dashboard')
   const [gate,    setGate]    = useState(urlGate)
   const [toast,   setToast]   = useState(null)
 
   const showToast = useCallback((msg, type = '') => setToast({ msg, type }), [])
+
+  async function handleAuth(mode, email, password, metadata = {}) {
+    const ok = mode === 'signin' ? await signIn(email, password) : await signUp(email, password, metadata)
+    if (ok) showToast('Welcome to WeddingIQ!', 'ok')
+    return ok
+  }
 
   // Handle RSVP self-upload URL
   if (urlRsvp && config) {
@@ -63,6 +72,17 @@ export default function App() {
         bgImage={bgImage}
         config={config}
       />
+    )
+  }
+
+  // Auth screen
+  if (status === 'loading') return null
+  if (status === 'unauthenticated') {
+    return (
+      <>
+        <AuthScreen onAuth={handleAuth} toast={showToast} />
+        {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+      </>
     )
   }
 
@@ -96,8 +116,9 @@ export default function App() {
         onNav={setPage}
         wedding={config}
         onGate={() => setGate(true)}
+        user={user}
+        onSignOut={signOut}
       />
-
       <div className="main-area">
         {/* Topbar */}
         <div className="topbar">
