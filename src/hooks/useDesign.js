@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { DEFAULT_DESIGN } from '../lib/constants.js'
 import { loadDesign, upsertDesign } from '../lib/supabase.js'
 
@@ -8,9 +8,12 @@ export function useDesign(user) {
   const [bgImage,      setBgImage]      = useState(null)
   const [history,      setHistory]      = useState([])
   const [loading,      setLoading]      = useState(true)
+  const loadedRef   = useRef(false)   // guard: don't save before initial load
+  const debounceRef = useRef(null)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
+    loadedRef.current = false
     loadDesign(user.id)
       .then(data => {
         if (data) {
@@ -20,13 +23,21 @@ export function useDesign(user) {
         }
       })
       .catch(e => console.warn('load design:', e.message))
-      .finally(() => setLoading(false))
+      .finally(() => {
+        setLoading(false)
+        loadedRef.current = true
+      })
   }, [user])
 
   const persist = useCallback(() => {
-    if (!user) return
-    upsertDesign({ user_id: user.id, design, theme, bgImage })
+    if (!user || !loadedRef.current) return
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      upsertDesign({ user_id: user.id, design, theme, bgImage })
+    }, 800)
   }, [user, design, theme, bgImage])
+
+  useEffect(() => { persist() }, [persist])
 
   const patchDesign = (patch) => {
     setHistory(h => [...h.slice(-4), { ...design }])
@@ -40,8 +51,6 @@ export function useDesign(user) {
   }
 
   const updateField = (key, value) => setDesign(d => ({ ...d, [key]: value }))
-
-  useEffect(() => { persist() }, [persist])
 
   return { design, theme, bgImage, history, loading, setTheme, setBgImage, patchDesign, undo, updateField }
 }

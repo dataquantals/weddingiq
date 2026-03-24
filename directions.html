@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Wedding Directions</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; }
+    
+    .directions-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #fff;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #C9A84C, #E8D5A3);
+      color: #3D2B1A;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: 'Cormorant Garamond', serif;
+    }
+
+    .header-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #3D2B1A;
+    }
+
+    #map {
+      flex: 1;
+      width: 100%;
+      position: relative;
+    }
+
+    .venues-panel {
+      background: #fff;
+      border-top: 2px solid #E8D5A3;
+      padding: 16px 20px;
+      max-height: 35%;
+      overflow-y: auto;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    }
+
+    .venue-card {
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #EDE8E0;
+    }
+
+    .venue-card:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .venue-icon {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #C9A84C, #E8D5A3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .venue-label {
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #8B7355;
+      font-weight: 500;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+    }
+
+    .venue-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: #3D2B1A;
+      margin-bottom: 3px;
+    }
+
+    .venue-address {
+      font-size: 10px;
+      color: #8B7355;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .venue-time {
+      font-size: 10px;
+      color: #5C3D1E;
+      margin-bottom: 8px;
+    }
+
+    .directions-btn {
+      background: linear-gradient(135deg, #C9A84C, #E8D5A3);
+      color: #3D2B1A;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+    }
+
+    .directions-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(201, 168, 76, 0.3);
+    }
+
+    .directions-btn:active {
+      transform: translateY(0);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #8B7355;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .empty-state-text {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 600px) {
+      .header h1 {
+        font-size: 16px;
+      }
+      
+      .venues-panel {
+        max-height: 45%;
+      }
+
+      .venue-name {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="directions-container">
+    <div class="header">
+      <h1>📍 Wedding Venues & Directions</h1>
+      <button class="header-close" onclick="goBack()">✕</button>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="venues-panel" id="venuesPanel">
+      <div class="empty-state">
+        <div class="empty-state-icon">📍</div>
+        <div class="empty-state-text">Loading venue information...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let map = null;
+    const VENUE_CFG_KEY = 'wiq_venues';
+    const CEREMONY_COLOR = '#C9A84C';
+    const RECEPTION_COLOR = '#7B5EA7';
+
+    function goBack() {
+      window.history.back();
+    }
+
+    function fmtTime(t) {
+      if (!t) return '';
+      const [h, m] = t.split(':');
+      const hr = parseInt(h);
+      const ampm = hr >= 12 ? 'PM' : 'AM';
+      return ((hr % 12) || 12) + ':' + m + ' ' + ampm;
+    }
+
+    function getVenueIcon(type, color) {
+      return L.divIcon({
+        html: `<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;
+          background:${color};border:3px solid #fff;transform:rotate(-45deg);
+          box-shadow:0 3px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:14px">
+          ${type === 'ceremony' ? '💒' : '🥂'}
+        </div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28],
+        className: ''
+      });
+    }
+
+    function renderVenuesPanel(venues) {
+      const panel = document.getElementById('venuesPanel');
+      let html = '';
+
+      if (!venues.ceremony?.lat && !venues.reception?.lat) {
+        panel.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🗺️</div>
+            <div class="empty-state-text">No venues added yet.<br>Visit settings to add ceremony and reception locations.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const VICONS = { 
+        church: '⛪', 
+        kingdom_hall: '🏛️', 
+        mosque: '🕌', 
+        civil: '🏛️', 
+        hindu_temple: '🛕', 
+        other: '📍' 
+      };
+
+      if (venues.ceremony?.name) {
+        const ceremonyIcon = VICONS[venues.ceremony.type] || '📍';
+        html += `
+          <div class="venue-card">
+            <div class="venue-label">
+              <span class="venue-icon">${ceremonyIcon}</span>
+              CEREMONY
+            </div>
+            <div class="venue-name">${venues.ceremony.name}</div>
+            ${venues.ceremony.address ? `<div class="venue-address">${venues.ceremony.address}</div>` : ''}
+            ${venues.ceremony.time ? `<div class="venue-time">🕐 ${fmtTime(venues.ceremony.time)}</div>` : ''}
+            <button class="directions-btn" onclick="openDirections(${venues.ceremony.lat}, ${venues.ceremony.lng}, '${(venues.ceremony.name || 'Ceremony').replace(/'/g, "\\'")}')">
+              → Get Directions
+            </button>
+          </div>
+        `;
+      }
+
+      if (venues.reception?.name && !venues.reception.same) {
+        const receptionIcon = '🥂';
+        html += `
+          <div class="venue-card">
+            <div class="venue-label">
+              <span class="venue-icon">${receptionIcon}</span>
+              RECEPTION
+            </div>
+            <div class="venue-name">${venues.reception.name}</div>
+            ${venues.reception.address ? `<div class="venue-address">${venues.reception.address}</div>` : ''}
+            ${venues.reception.time ? `<div class="venue-time">🕐 ${fmtTime(venues.reception.time)}</div>` : ''}
+            <button class="directions-btn" onclick="openDirections(${venues.reception.lat}, ${venues.reception.lng}, '${(venues.reception.name || 'Reception').replace(/'/g, "\\'")}')">
+              → Get Directions
+            </button>
+          </div>
+        `;
+      } else if (venues.reception?.same && venues.ceremony?.name) {
+        html += `
+          <div class="venue-card">
+            <div style="color:#8B7355;font-size:10.5px;font-style:italic">
+              Reception follows at the same venue
+            </div>
+          </div>
+        `;
+      }
+
+      panel.innerHTML = html;
+    }
+
+    function openDirections(lat, lng, name) {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        window.open(`maps://maps.apple.com/?daddr=${lat},${lng}&dirflg=d`, '_blank');
+      } else {
+        window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank');
+      }
+    }
+
+    function initMap() {
+      let venues = {};
+      try {
+        const saved = localStorage.getItem(VENUE_CFG_KEY);
+        if (saved) {
+          venues = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.warn('Error loading venues:', e);
+      }
+
+      const hasC = venues.ceremony?.lat && venues.ceremony?.lng;
+      const hasR = venues.reception?.lat && venues.reception?.lng && !venues.reception?.same;
+
+      if (!hasC && !hasR) {
+        // No venues, show empty state
+        document.getElementById('map').style.display = 'none';
+        renderVenuesPanel(venues);
+        return;
+      }
+
+      const centerLat = hasC ? venues.ceremony.lat : venues.reception.lat;
+      const centerLng = hasC ? venues.ceremony.lng : venues.reception.lng;
+
+      // Initialize map
+      map = L.map('map').setView([centerLat, centerLng], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Ceremony marker
+      if (hasC) {
+        L.marker([venues.ceremony.lat, venues.ceremony.lng], {
+          icon: getVenueIcon('ceremony', CEREMONY_COLOR)
+        })
+          .bindPopup(`
+            <div style="font-family:'Cormorant Garamond',serif;text-align:center">
+              <div style="font-size:14px;font-weight:600;color:#3D2B1A;margin-bottom:4px">${venues.ceremony.name}</div>
+              <div style="font-size:11px;color:#8B7355;margin-bottom:8px">${venues.ceremony.address || ''}</div>
+              <button onclick="openDirections(${venues.ceremony.lat}, ${venues.ceremony.lng}, '${(venues.ceremony.name || 'Ceremony').replace(/'/g, "\\'")}'); return false;" 
+                style="background:linear-gradient(135deg,#C9A84C,#E8D5A3);color:#3D2B1A;border:none;padding:6px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;">
+                Get Directions
+              </button>
+            </div>
+          `)
+          .addTo(map);
+      }
+
+      // Reception marker
+      if (hasR) {
+        L.marker([venues.reception.lat, venues.reception.lng], {
+          icon: getVenueIcon('reception', RECEPTION_COLOR)
+        })
+          .bindPopup(`
+            <div style="font-family:'Cormorant Garamond',serif;text-align:center">
+              <div style="font-size:14px;font-weight:600;color:#3D2B1A;margin-bottom:4px">${venues.reception.name}</div>
+              <div style="font-size:11px;color:#8B7355;margin-bottom:8px">${venues.reception.address || ''}</div>
+              <button onclick="openDirections(${venues.reception.lat}, ${venues.reception.lng}, '${(venues.reception.name || 'Reception').replace(/'/g, "\\'")}'); return false;" 
+                style="background:linear-gradient(135deg,#C9A84C,#E8D5A3);color:#3D2B1A;border:none;padding:6px 10px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;">
+                Get Directions
+              </button>
+            </div>
+          `)
+          .addTo(map);
+
+        // Fit both markers
+        map.fitBounds([[venues.ceremony.lat, venues.ceremony.lng], [venues.reception.lat, venues.reception.lng]], {
+          padding: [60, 60]
+        });
+      }
+
+      // Fix map sizing
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
+
+      renderVenuesPanel(venues);
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initMap);
+
+    // Handle visibility changes (fix map size when page comes back into focus)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && map) {
+        setTimeout(() => map.invalidateSize(), 100);
+      }
+    });
+  </script>
+</body>
+</html>

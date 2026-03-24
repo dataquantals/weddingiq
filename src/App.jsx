@@ -1,21 +1,30 @@
-import { useState, useCallback } from 'react'
-import { useAuth }   from './hooks/useAuth.js'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams, useLocation, Navigate } from 'react-router-dom'
+import { useAuth } from './hooks/useAuth.js'
 import { useConfig } from './hooks/useConfig.js'
-import { useGuests } from './hooks/useGuests.js'
 import { useDesign } from './hooks/useDesign.js'
-import Sidebar         from './components/Sidebar.jsx'
-import Toast           from './components/Toast.jsx'
-import AuthScreen      from './pages/AuthScreen.jsx'
-import ConfigScreen    from './pages/ConfigScreen.jsx'
-import Dashboard       from './pages/Dashboard.jsx'
-import GuestList       from './pages/GuestList.jsx'
-import CardDesigner    from './pages/CardDesigner.jsx'
-import InviteCards     from './pages/InviteCards.jsx'
-import GateScanner     from './pages/GateScanner.jsx'
-import Settings        from './pages/Settings.jsx'
-import RsvpScreen      from './pages/RsvpScreen.jsx'
-import InviteScreen    from './pages/InviteScreen.jsx'
-import { fmtDate }     from './lib/helpers.js'
+import { useGuests } from './hooks/useGuests.js'
+import { useCanvasDesign } from './hooks/useCanvasDesign.js'
+import { usePublicInvite } from './hooks/usePublicInvite.js'
+import { THEMES } from './lib/constants.js'
+import { findAnyTheme } from './lib/themesGenerator.js'
+import GuestList from './pages/GuestList.jsx'
+import InviteCards from './pages/InviteCards.jsx'
+import Dashboard from './pages/Dashboard.jsx'
+import ConfigScreen from './pages/ConfigScreen.jsx'
+import AuthScreen from './pages/AuthScreen.jsx'
+import ProjectSelect from './pages/ProjectSelect.jsx'
+import RsvpScreen from './pages/RsvpScreen.jsx'
+import InviteScreen from './pages/InviteScreen.jsx'
+import Landing from './pages/Landing.jsx'
+import GateScanner from './pages/GateScanner.jsx'
+import CardDesigner from './pages/CardDesigner.jsx'
+import Settings from './pages/Settings.jsx'
+import EditWedding from './pages/EditWedding.jsx'
+import VenuesDirections from './pages/VenuesDirections.jsx'
+import Sidebar from './components/Sidebar.jsx'
+import Toast from './components/Toast.jsx'
+import './styles/globals.css'
 
 // Check URL params for special modes
 const params  = new URLSearchParams(window.location.search)
@@ -28,18 +37,59 @@ const PAGE_META = {
   guests:    { title:'Guest List',      sub:'Manage and import guest records' },
   designer:  { title:'Card Designer',   sub:'AI-powered invite card designer' },
   cards:     { title:'Invite Cards',    sub:'Generate and manage invite cards' },
-  settings:  { title:'Settings',        sub:'Configure wedding details' },
+  edit:      { title:'Edit Wedding',    sub:'Update wedding details, card copy and design' },
+  venues:    { title:'Venues & Directions', sub:'Manage venue locations and guest directions' },
+  settings:  { title:'Settings',        sub:'Configure your account and integrations' },
 }
 
 export default function App() {
-  const { user, session, status, error, signUp, signIn, signOut } = useAuth()
-  const { config, loading: cfgLoading, saveConfig, updateConfig } = useConfig(user)
-  const { guests, loading: guestsLoading, addGuest, updateGuest, removeGuest, checkIn, setAiMessage, setPhotoUrl, importBulk, clearGuests } = useGuests(user)
-  const { design, theme, bgImage, history, loading: designLoading, setTheme, setBgImage, patchDesign, undo, updateField } = useDesign(user)
+  const location = useLocation()
+  // `/Home` is used by the non-React user-home.html page we generate in the repo root.
+  // When someone opens `http://localhost:3001/Home`, immediately hand off to that static page.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const p = location.pathname
+    if (p === '/Home' || p === '/home') {
+      const base = window.location.href.split('/').slice(0, -1).join('/')
+      window.location.href = base + '/Home.html'
+    }
+  }, [location.pathname])
 
-  const [page,    setPage]    = useState('dashboard')
-  const [gate,    setGate]    = useState(urlGate)
-  const [toast,   setToast]   = useState(null)
+  const { user, session, status, error, signUp, signIn, signOut, updateUserProfile } = useAuth()
+  const { config, projects, loading: cfgLoading, saveConfig, updateConfig, selectProject, clearSelection } = useConfig(user)
+  const { guests, loading: guestsLoading, addGuest, updateGuest, removeGuest, checkIn, setAiMessage, setPhotoUrl, importBulk, clearGuests } = useGuests(user, config?.id)
+  const { design, theme, bgImage, history, loading: designLoading, setTheme, setBgImage, patchDesign, undo, updateField } = useDesign(user)
+  const { canvasPages, setCanvasPages, selectedBorder, setSelectedBorder, borderCategory, setBorderCategory, borderScale, setBorderScale, saveStatus: canvasSaveStatus, saveCanvas, canvasLoaded } = useCanvasDesign(user, config)
+  const { guest: pGuest, wedding: pWedding, design: pDesign, canvasDesign: pCanvas, loading: pLoading } = usePublicInvite(urlInvite)
+
+  const [page,        setPage]        = useState('dashboard')
+  const [gate,        setGate]        = useState(urlGate)
+  const [toast,       setToast]       = useState(null)
+  const [showConfig,  setShowConfig]  = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [venues,      setVenues]      = useState({ ceremony: {}, reception: {} })
+  const [creatingNew, setCreatingNew] = useState(false)
+
+  // Load venues from project-scoped localStorage when config (project) changes
+  useEffect(() => {
+    if (!config?.id) { setVenues({ ceremony: {}, reception: {} }); return }
+    try {
+      const scoped = localStorage.getItem(`wiq_venues_${config.id}`)
+      const legacy = localStorage.getItem('wiq_venues')
+      if (scoped) {
+        setVenues(JSON.parse(scoped))
+      } else if (legacy) {
+        // First time: migrate legacy global venues to the first project
+        const parsed = JSON.parse(legacy)
+        setVenues(parsed)
+        localStorage.setItem(`wiq_venues_${config.id}`, legacy)
+      } else {
+        setVenues({ ceremony: {}, reception: {} })
+      }
+    } catch (e) {
+      setVenues({ ceremony: {}, reception: {} })
+    }
+  }, [config?.id])
 
   const showToast = useCallback((msg, type = '') => setToast({ msg, type }), [])
 
@@ -61,36 +111,106 @@ export default function App() {
     )
   }
 
-  // Handle Share/Invite URL
-  if (urlInvite && config) {
+  // Handle Share/Invite URL (publicly or for owners)
+  if (urlInvite) {
+    if (pLoading) return (
+      <div className="cfg-screen">
+        <div style={{ textAlign:'center', padding:'60px 20px' }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>💌</div>
+          <div className="cfg-title">WeddingIQ</div>
+          <div className="cfg-sub">Loading your invitation...</div>
+        </div>
+      </div>
+    )
+    if (pGuest && pWedding) {
+      return (
+        <InviteScreen
+          guest={pGuest}
+          design={pDesign?.design || pDesign || {}}
+          theme={pDesign?.design?.custom_theme || pDesign?.custom_theme || findAnyTheme(pDesign?.theme || theme, THEMES) || THEMES[0]}
+          bgImage={pDesign?.bgImage || bgImage}
+          config={pWedding}
+          venues={pWedding?.venues || venues}
+          canvasPages={pCanvas?.canvas_pages}
+          selectedBorder={pCanvas?.selected_border}
+        />
+      )
+    }
+    // Invite token not found or error — show friendly fallback
     return (
-      <InviteScreen
-        guestId={urlInvite}
-        guests={guests}
-        design={design}
-        theme={theme}
-        bgImage={bgImage}
-        config={config}
-      />
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--cream)', fontFamily:'var(--sans)' }}>
+        <div style={{ textAlign:'center', padding:40, maxWidth:380 }}>
+          <div style={{ fontSize:52, marginBottom:14 }}>💌</div>
+          <div style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--plum)', marginBottom:8 }}>Invite not found</div>
+          <div style={{ fontSize:14, color:'var(--muted)', lineHeight:1.6 }}>This invitation link may be expired or invalid. Please contact the couple for a new link.</div>
+        </div>
+      </div>
     )
   }
 
-  // Auth screen
-  if (status === 'loading') return null
-  if (status === 'unauthenticated') {
+  // Show loading while checking auth or loading projects
+  if (status === 'loading' || cfgLoading) {
+    return (
+      <div className="cfg-screen">
+        <div style={{ textAlign:'center', padding:'60px 20px' }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>💍</div>
+          <div className="cfg-title">WeddingIQ</div>
+          <div className="cfg-sub">Loading your wedding projects...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Landing page at / — handles its own auth modal; redirects logged-in users to /Home
+  // BUT only if user is not authenticated or has no selected project
+  if (location.pathname === '/' && (!user || (status === 'authenticated' && projects.length === 0))) {
     return (
       <>
-        <AuthScreen onAuth={handleAuth} toast={showToast} />
+        <Landing user={user} onAuth={handleAuth} toast={showToast} />
         {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
       </>
     )
   }
 
-  // Setup screen
+  // Not at root (e.g., /Home). Let's protect the routes by redirecting unauthenticated users to /
+  if (status === 'unauthenticated') {
+    return <Navigate to="/" replace />
+  }
+
+  // Show project selection if user has projects but none selected and not creating a new one
+  if (status === 'authenticated' && projects && projects.length > 0 && !config && !creatingNew) {
+    // Redirect to the static user home page instead of React ProjectSelect (Image 2 -> Image 1)
+    window.location.href = '/user-home.html'
+    return null
+  }
+
+  // First time user setup (no projects exist) OR creating a new project
   if (!config) {
+    let initialCfg = null
+    if (!creatingNew) {
+      try {
+        initialCfg = JSON.parse(localStorage.getItem('wiq_cfg') || 'null')
+      } catch (_) { /* ignore */ }
+    }
+
+    const initialData = initialCfg
+      ? {
+          bride: initialCfg.bride || '',
+          groom: initialCfg.groom || '',
+          date: initialCfg.date || '',
+          hosts: initialCfg.hosts || '',
+          venue: initialCfg.venue || '',
+          address: initialCfg.address || ''
+        }
+      : undefined
+
     return (
       <>
-        <ConfigScreen onSave={saveConfig} />
+        <ConfigScreen
+          initialData={initialData}
+          onSave={(data) => { saveConfig(data); setCreatingNew(false); setShowConfig(false) }}
+          onBack={projects.length > 0 ? () => setCreatingNew(false) : null}
+        />
         {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
       </>
     )
@@ -111,34 +231,36 @@ export default function App() {
 
   return (
     <div className="app-layout">
+      {/* Mobile Toggle */}
+      <div className="mobile-toggle">
+        <span className="sb-logo-text">WeddingIQ</span>
+        <span className="hamburger" onClick={() => setSidebarOpen(true)}>☰</span>
+      </div>
+
       <Sidebar
         page={page}
-        onNav={setPage}
+        onNav={(p) => { setPage(p); setSidebarOpen(false); }}
         wedding={config}
-        onGate={() => setGate(true)}
+        onGate={() => { setGate(true); setSidebarOpen(false); }}
         user={user}
         onSignOut={signOut}
+        onHome={() => { window.location.href = '/user-home.html'; }}
+        isOpen={sidebarOpen}
       />
-      <div className="main-area">
-        {/* Topbar */}
-        <div className="topbar">
-          <div>
-            <div className="tb-title" style={{ fontFamily:'var(--serif)', fontSize:19, fontWeight:500, color:'var(--plum)' }}>
-              {meta.title}
-            </div>
-            <div style={{ fontSize:11, color:'var(--muted)', marginTop:1 }}>{meta.sub}</div>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <button className="btn btn-o btn-sm"
-              style={{ color:'var(--ok)', borderColor:'rgba(45,122,79,.3)' }}
-              onClick={() => setGate(true)}>
-              🚪 Open Gate
-            </button>
-            <span className="badge bg-plum">{fmtDate(config.date) || 'Date TBD'}</span>
-          </div>
-        </div>
+      
+      <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
 
-        {/* Page content */}
+      <div className="main-area">
+        <header className="page-header">
+          <div className="ph-left">
+            <h1 className="ph-title">{meta.title}</h1>
+            <p className="ph-sub">{meta.sub}</p>
+          </div>
+          <div className="ph-date">
+            {new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
+          </div>
+        </header>
+
         <div className="page-content">
           {page === 'dashboard' && (
             <Dashboard guests={guests} config={config} />
@@ -160,6 +282,7 @@ export default function App() {
 
           {page === 'designer' && (
             <CardDesigner
+              user={user}
               design={design}
               theme={theme}
               bgImage={bgImage}
@@ -170,7 +293,19 @@ export default function App() {
               undo={undo}
               updateField={updateField}
               config={config}
+              venues={venues}
               toast={showToast}
+              canvasPages={canvasPages}
+              setCanvasPages={setCanvasPages}
+              selectedBorder={selectedBorder}
+              setSelectedBorder={setSelectedBorder}
+              borderCategory={borderCategory}
+              setBorderCategory={setBorderCategory}
+              borderScale={borderScale}
+              setBorderScale={setBorderScale}
+              saveStatus={canvasSaveStatus}
+              saveCanvas={saveCanvas}
+              canvasLoaded={canvasLoaded}
             />
           )}
 
@@ -179,16 +314,61 @@ export default function App() {
               guests={guests}
               design={design}
               theme={theme}
+              bgImage={bgImage}
               config={config}
+              venues={venues}
               onRegenMsg={setAiMessage}
               onPhotoUpload={setPhotoUrl}
               onRemovePhoto={(id) => setPhotoUrl(id, null)}
               toast={showToast}
+              canvasPages={canvasPages}
+              selectedBorder={selectedBorder}
             />
           )}
 
           {page === 'settings' && (
-            <Settings config={config} onUpdate={updateConfig} toast={showToast} />
+            <Settings
+              user={user}
+              config={config}
+              guests={guests}
+              onUpdate={updateConfig}
+              onSignOut={signOut}
+              updateUserProfile={updateUserProfile}
+              clearGuests={clearGuests}
+              toast={showToast}
+            />
+          )}
+
+          {page === 'edit' && (
+            <EditWedding
+              config={config}
+              design={design}
+              theme={theme}
+              bgImage={bgImage}
+              venues={venues}
+              onUpdate={updateConfig}
+              setTheme={setTheme}
+              setBgImage={setBgImage}
+              patchDesign={patchDesign}
+              updateField={updateField}
+              toast={showToast}
+              canvasPages={canvasPages}
+              selectedBorder={selectedBorder}
+            />
+          )}
+
+          {page === 'venues' && (
+            <VenuesDirections
+              config={config}
+              onUpdate={updateConfig}
+              toast={showToast}
+              venues={venues}
+              onVenuesChange={(v) => {
+                setVenues(v)
+                updateConfig({ venues: v })
+                localStorage.setItem(`wiq_venues_${config.id}`, JSON.stringify(v))
+              }}
+            />
           )}
         </div>
       </div>

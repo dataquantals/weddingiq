@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WeddingIQ - Smart Guest Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold: #C9A84C;
+      --gold-l: #E8D5A3;
+      --plum: #1E0F2E;
+      --plum-m: #2D1A45;
+      --ink: #F5EDD8;
+      --muted: rgba(245,237,216,.55);
+      --serif: 'Cormorant Garamond', serif;
+      --sans: 'DM Sans', sans-serif;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--sans); background: var(--plum); color: var(--ink); overflow-x: hidden; }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.6;
+    }
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 60px;
+      background: rgba(30,15,46,.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(201,168,76,.12);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: inherit;
+    }
+    .nav-brand-icon {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-l));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-brand-icon svg { width: 16px; height: 16px; }
+    .nav-brand-name {
+      font-family: var(--serif);
+      font-size: 20px; font-weight: 600;
+      color: var(--gold-l);
+      letter-spacing: .04em;
+    }
+    .nav-links { display: flex; align-items: center; gap: 36px; list-style: none; }
+    .nav-links a { text-decoration: none; font-size: 13.5px; color: var(--muted); transition: color .2s; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta { display: flex; align-items: center; gap: 12px; }
+    .btn-nav-ghost {
+      padding: 8px 20px; border-radius: 8px;
+      border: 1px solid rgba(201,168,76,.3);
+      background: transparent;
+      color: var(--gold-l); font-size: 13px; font-weight: 500;
+      cursor: pointer; font-family: var(--sans);
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .btn-nav-ghost:hover { background: rgba(201,168,76,.08); border-color: var(--gold); }
+    .btn-nav-solid {
+      padding: 8px 22px; border-radius: 8px;
+      border: none;
+      background: var(--gold);
+      color: #1A0E08; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: var(--sans);
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .btn-nav-solid:hover { background: var(--gold-l); }
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 40px 80px;
+      overflow: hidden;
+      z-index: 1;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      width: 700px; height: 700px;
+      background: radial-gradient(ellipse, rgba(201,168,76,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 20px;
+      border: 1px solid rgba(201,168,76,.3);
+      background: rgba(201,168,76,.06);
+      font-size: 12px; font-weight: 500;
+      color: var(--gold-l);
+      letter-spacing: .1em; text-transform: uppercase;
+      margin-bottom: 28px;
+      position: relative; z-index: 2;
+    }
+    .eyebrow-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }
+    .hero-title {
+      font-family: var(--serif);
+      font-size: clamp(52px, 8vw, 86px);
+      font-weight: 300;
+      line-height: 1.05;
+      letter-spacing: -.01em;
+      color: var(--ink);
+      margin-bottom: 12px;
+      position: relative; z-index: 2;
+    }
+    .hero-title em { font-style: italic; font-weight: 300; color: var(--gold-l); }
+    .hero-title .accent-line {
+      display: block;
+      font-weight: 600; font-style: normal;
+      background: linear-gradient(135deg, var(--gold), var(--gold-l) 60%, var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 17px; font-weight: 300;
+      color: var(--muted);
+      line-height: 1.75;
+      max-width: 520px;
+      margin: 0 auto 44px;
+      position: relative; z-index: 2;
+    }
+    .hero-actions {
+      display: flex; align-items: center; gap: 16px;
+      flex-wrap: wrap; justify-content: center;
+      position: relative; z-index: 2;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 15px 34px; border-radius: 10px;
+      background: var(--gold);
+      color: #1A0E08; font-size: 15px; font-weight: 600;
+      font-family: var(--sans); border: none; cursor: pointer;
+      text-decoration: none;
+      transition: all .2s;
+      box-shadow: 0 8px 32px rgba(201,168,76,.3);
+    }
+    .btn-primary:hover { background: var(--gold-l); transform: translateY(-1px); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 14px 30px; border-radius: 10px;
+      background: transparent;
+      color: var(--ink); font-size: 15px; font-weight: 400;
+      font-family: var(--sans); cursor: pointer;
+      text-decoration: none;
+      border: 1px solid rgba(245,237,216,.2);
+      transition: all .2s;
+    }
+    .btn-secondary:hover { background: rgba(245,237,216,.06); }
+    .cta-section {
+      padding: 120px 60px;
+      text-align: center;
+      background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,.1) 0%, transparent 60%);
+      border-top: 1px solid rgba(201,168,76,.1);
+    }
+    .cta-inner { max-width: 640px; margin: 0 auto; }
+    .cta-ornament { font-size: 32px; color: var(--gold); margin-bottom: 24px; display: block; }
+    .cta-title {
+      font-family: var(--serif);
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 400; line-height: 1.1;
+      color: var(--ink); margin-bottom: 18px;
+    }
+    .cta-sub { font-size: 16px; color: var(--muted); line-height: 1.75; margin-bottom: 44px; }
+    .cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .cta-note { margin-top: 20px; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; justify-content: center; }
+    footer {
+      padding: 40px 60px;
+      border-top: 1px solid rgba(201,168,76,.08);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-brand { font-family: var(--serif); font-size: 17px; color: var(--gold-l); }
+    .footer-copy { font-size: 12px; color: var(--muted); }
+    .footer-links { display: flex; gap: 28px; list-style: none; }
+    .footer-links a { text-decoration: none; font-size: 12px; color: var(--muted); }
+    .footer-links a:hover { color: var(--ink); }
+
+    /* Auth modal */
+    .auth-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,.8);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .auth-overlay[data-hidden="true"] { display: none; }
+    .auth-modal {
+      background: var(--plum-m);
+      border-radius: 16px;
+      overflow: hidden;
+      width: 100%; max-width: 440px;
+      position: relative;
+      border: 1px solid rgba(201,168,76,.2);
+    }
+    .auth-modal .close {
+      position: absolute; right: 20px; top: 20px;
+      background: none; border: none;
+      color: #fff; font-size: 20px; cursor: pointer;
+      z-index: 10;
+    }
+    .auth-modal .content { padding: 32px; }
+    .auth-modal .title { text-align: center; margin-bottom: 22px; }
+    .auth-modal .title .icon { font-size: 44px; margin-bottom: 8px; }
+    .auth-modal .title h2 { font-family: var(--serif); font-size: 24px; color: var(--ink); }
+    .auth-modal .title p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .auth-modal .fg { margin-bottom: 16px; }
+    .auth-modal .fg label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .auth-modal .fg input {
+      width: 100%; padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(201,168,76,.2);
+      background: rgba(30,15,46,.5);
+      color: var(--ink);
+      font-size: 14px;
+    }
+    .auth-modal .fg input::placeholder { color: var(--muted); opacity: .7; }
+    .auth-modal .submit {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      background: var(--gold);
+      color: #1A0E08;
+      font-size: 15px; font-weight: 600;
+      font-family: var(--sans);
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .auth-modal .submit:hover { background: var(--gold-l); }
+    .auth-modal .submit:disabled { opacity: .6; cursor: not-allowed; }
+    .auth-modal .toggle {
+      text-align: center; margin-top: 14px;
+    }
+    .auth-modal .toggle button {
+      background: none; border: none;
+      color: var(--gold-l);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .auth-modal .toggle button:hover { color: var(--gold); }
+    .auth-modal .err { font-size: 12px; color: #C85454; margin-top: 6px; }
+    .auth-modal .signup-fields { display: none; }
+    .auth-modal[data-mode="signup"] .signup-fields { display: block; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="nav-brand" href="#" id="logoLink">
+      <img src="/Assets/wedding%20logo.png" onerror="this.src='/logo.png'" alt="Logo" style="height: 85px; width: auto; object-fit: contain;" />
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#" id="navGate">Gate Scanner</a></li>
+    </ul>
+    <div class="nav-cta">
+      <a href="#" class="btn-nav-ghost" id="navSignIn">Sign in</a>
+      <a href="#" class="btn-nav-solid" id="navGetStarted">Get started</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-eyebrow">
+      <div class="eyebrow-dot"></div>
+      AI-Powered Wedding Management
+    </div>
+    <h1 class="hero-title">
+      Every guest<br />
+      <em>perfectly</em> welcomed
+      <span class="accent-line">on your big day</span>
+    </h1>
+    <p class="hero-sub">
+      From personalised AI invitation cards to real-time QR check-in at the gate — WeddingIQ handles your entire guest journey with elegance.
+    </p>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary" id="heroLaunch">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="#1A0E08" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Launch WeddingIQ
+      </a>
+      <a href="#" class="btn-secondary" id="heroGate">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/>
+          <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M9 9H11M11 9H14M14 9V11M14 11V14M14 14H11M11 14V11M11 11H9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        Open Gate Scanner
+      </a>
+    </div>
+  </section>
+
+  <section class="cta-section" id="app">
+    <div class="cta-inner">
+      <span class="cta-ornament">💍</span>
+      <h2 class="cta-title">Make every guest feel like the guest of honour</h2>
+      <p class="cta-sub">WeddingIQ handles the logistics so you can focus on the memories. Ready when you are.</p>
+      <div class="cta-actions">
+        <a href="#" class="btn-primary" id="ctaSignIn">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="#1A0E08" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Launch WeddingIQ
+        </a>
+        <a href="#" class="btn-secondary" id="ctaSignUp">Get started</a>
+      </div>
+      <div class="cta-note">
+        <span>Works in any browser</span>
+        <span style="width:4px;height:4px;border-radius:50%;background:rgba(201,168,76,.5)"></span>
+        <span>Supabase pre-connected</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-brand">WeddingIQ 💍</div>
+    <ul class="footer-links">
+      <li><a href="#" id="footSignIn">Admin App</a></li>
+      <li><a href="#" id="footGate">Gate Scanner</a></li>
+    </ul>
+    <span class="footer-copy">Built with DeepSeek AI &amp; Supabase</span>
+  </footer>
+
+  <div class="auth-overlay" id="authOverlay" data-hidden="true">
+    <div class="auth-modal" id="authModal" data-mode="signin">
+      <button class="close" id="authClose">×</button>
+      <div class="content">
+        <div class="title">
+          <div class="icon">💍</div>
+          <h2>WeddingIQ</h2>
+          <p id="authSubtitle">Welcome back! Sign in to continue</p>
+        </div>
+        <form id="authForm">
+          <div class="signup-fields">
+            <div class="fg">
+              <label>First Name</label>
+              <input type="text" name="firstName" placeholder="First name" />
+            </div>
+            <div class="fg">
+              <label>Last Name</label>
+              <input type="text" name="lastName" placeholder="Last name" />
+            </div>
+          </div>
+          <div class="fg">
+            <label>Email</label>
+            <input type="email" name="email" placeholder="you@example.com" required />
+          </div>
+          <div class="fg">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="••••••••" required minlength="6" />
+          </div>
+          <div class="fg" id="confirmWrap" style="display:none;">
+            <label>Confirm Password</label>
+            <input type="password" name="confirmPassword" placeholder="••••••••" minlength="6" />
+          </div>
+          <div class="err" id="authErr"></div>
+          <button type="submit" class="submit" id="authSubmit">Sign In</button>
+        </form>
+        <div class="toggle">
+          <button type="button" id="authToggle">No account? Sign up</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPA_URL = 'https://jzoaodxbicxknchgylrg.supabase.co';
+    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2FvZHhiaWN4a25jaGd5bHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzQ2ODksImV4cCI6MjA4OTQxMDY4OX0.bmvzcrlqQVRfpkYmenraK2enTMZAs5DCkBX5lUoy9BU';
+
+    const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+    function baseUrl() {
+      return window.location.href.split('/').slice(0, -1).join('/');
+    }
+    function redirectTo(file) {
+      window.location.href = baseUrl() + '/' + file;
+    }
+
+    const gateUrl = baseUrl() + '/gate-scanner.html';
+
+    function openAuth(mode) {
+      const modal = document.getElementById('authModal');
+      const overlay = document.getElementById('authOverlay');
+      const subtitle = document.getElementById('authSubtitle');
+      const submitBtn = document.getElementById('authSubmit');
+      const toggleBtn = document.getElementById('authToggle');
+      const confirmWrap = document.getElementById('confirmWrap');
+      const form = document.getElementById('authForm');
+
+      modal.dataset.mode = mode;
+      overlay.dataset.hidden = 'false';
+      document.getElementById('authErr').textContent = '';
+      form.reset();
+
+      if (mode === 'signin') {
+        subtitle.textContent = 'Welcome back! Sign in to continue';
+        submitBtn.textContent = 'Sign In';
+        toggleBtn.textContent = 'No account? Sign up';
+        confirmWrap.style.display = 'none';
+      } else {
+        subtitle.textContent = 'Create your account to get started';
+        submitBtn.textContent = 'Create Account';
+        toggleBtn.textContent = 'Have an account? Sign in';
+        confirmWrap.style.display = 'block';
+      }
+    }
+
+    function closeAuth() {
+      document.getElementById('authOverlay').dataset.hidden = 'true';
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const form = document.getElementById('authForm');
+      const errEl = document.getElementById('authErr');
+      const submitBtn = document.getElementById('authSubmit');
+      const mode = document.getElementById('authModal').dataset.mode;
+
+      const email = form.email.value.trim();
+      const password = form.password.value;
+
+      errEl.textContent = '';
+
+      if (mode === 'signup') {
+        const firstName = form.firstName?.value?.trim() || '';
+        const lastName = form.lastName?.value?.trim() || '';
+        const confirm = form.confirmPassword?.value || '';
+        if (!firstName || !lastName) {
+          errEl.textContent = 'First name and last name required';
+          return;
+        }
+        if (password.length < 6) {
+          errEl.textContent = 'Password must be at least 6 characters';
+          return;
+        }
+        if (password !== confirm) {
+          errEl.textContent = 'Passwords do not match';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              first_name: firstName,
+              last_name: lastName,
+              full_name: firstName + ' ' + lastName
+            }
+          }
+        });
+        submitBtn.disabled = false;
+
+        if (error) {
+          errEl.textContent = error.message || 'Sign up failed';
+          return;
+        }
+        if (data?.user) {
+          localStorage.setItem('wiq_user_name', firstName + ' ' + lastName);
+          redirectTo('user-home.html');
+        }
+      } else {
+        submitBtn.disabled = true;
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        submitBtn.disabled = false;
+
+        if (error) {
+          errEl.textContent = error.message || 'Sign in failed';
+          return;
+        }
+        if (data?.session) {
+          redirectTo('user-home.html');
+        }
+      }
+    }
+
+    document.getElementById('authClose').onclick = closeAuth;
+    document.getElementById('authOverlay').onclick = (e) => {
+      if (e.target.id === 'authOverlay') closeAuth();
+    };
+    document.getElementById('authForm').onsubmit = handleAuthSubmit;
+    document.getElementById('authToggle').onclick = () => {
+      const mode = document.getElementById('authModal').dataset.mode;
+      openAuth(mode === 'signin' ? 'signup' : 'signin');
+    };
+
+    document.getElementById('logoLink').href = baseUrl() + '/weddingiq-home.html';
+    document.getElementById('navSignIn').onclick = (e) => { e.preventDefault(); openAuth('signin'); };
+    document.getElementById('navGetStarted').onclick = (e) => { e.preventDefault(); openAuth('signup'); };
+    document.getElementById('heroLaunch').onclick = (e) => { e.preventDefault(); openAuth('signin'); };
+    document.getElementById('heroGate').href = gateUrl;
+    document.getElementById('ctaSignIn').onclick = (e) => { e.preventDefault(); openAuth('signin'); };
+    document.getElementById('ctaSignUp').onclick = (e) => { e.preventDefault(); openAuth('signup'); };
+    document.getElementById('footSignIn').onclick = (e) => { e.preventDefault(); openAuth('signin'); };
+    document.getElementById('footGate').href = gateUrl;
+    document.getElementById('navGate').href = gateUrl;
+
+    (async function checkSession() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) {
+        redirectTo('user-home.html');
+      }
+    })();
+  </script>
+</body>
+</html>

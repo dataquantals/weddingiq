@@ -1,7 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-export default function AuthScreen({ onAuth, toast }) {
-  const [mode, setMode] = useState('signin')
+export default function AuthScreen({ onAuth, toast, mode: incomingMode, isModal, onSuccess }) {
+  const urlMode = new URLSearchParams(window.location.search).get('mode')
+  const [mode, setMode] = useState(incomingMode || urlMode || 'signin')
+  
+  useEffect(() => {
+    if (incomingMode) setMode(incomingMode)
+  }, [incomingMode])
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -51,12 +57,13 @@ export default function AuthScreen({ onAuth, toast }) {
       phone: formData.phone,
       role: formData.role
     })
-    if (!ok) setLoading(false)
+    setLoading(false)
+    if (ok && onSuccess) onSuccess()
   }
 
   return (
-    <div className="cfg-screen">
-      <div style={{ maxWidth: 420, width:'100%' }}>
+    <div className={isModal ? "" : "cfg-screen"} style={isModal ? { padding: '32px' } : {}}>
+      <div style={{ maxWidth: 420, width:'100%', margin: isModal ? '0 auto' : undefined }}>
         <div style={{ textAlign:'center', marginBottom:22 }}>
           <div style={{ fontSize:44, marginBottom:8 }}>💍</div>
           <div className="cfg-title">WeddingIQ</div>

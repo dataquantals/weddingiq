@@ -1,33 +1,30 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import QRCode from 'qrcode'
 import { uploadPhoto } from '../lib/supabase.js'
 import { callDeepSeek, fmtDate } from '../lib/helpers.js'
 import { THEMES } from '../lib/constants.js'
 import InviteCard, { buildCardHTML } from './InviteCard.jsx'
 
-export default function CardModal({ guest, config, design, theme, onClose, onAiMessage, onPhotoUrl }) {
+export default function CardModal({ guest, config, design, theme, venues, onClose, onAiMessage, onPhotoUrl }) {
   const [aiMsg,   setAiMsg]   = useState(guest.ai_message || '')
   const [regen,   setRegen]   = useState(false)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoStatus,    setPhotoStatus]    = useState('')
   const [photoPreview,   setPhotoPreview]   = useState(guest.photo_url || null)
-  const qrLargeRef = useRef()
-  const fileRef    = useRef()
+  const [cardHtml, setCardHtml] = useState('')
+  const fileRef = useRef()
 
   const shareUrl = `${window.location.href.split('?')[0]}?invite=${guest.qr_token}`
   const themeObj = THEMES.find(t => t.id === theme) || THEMES[0]
 
-  // Build large sidebar QR once ref is ready
-  function mountLargeQR(node) {
-    qrLargeRef.current = node
-    if (!node || !guest.qr_token) return
-    node.innerHTML = ''
-    const canvas = document.createElement('canvas')
-    node.appendChild(canvas)
-    QRCode.toCanvas(canvas, 'WEDDING_CHECKIN:' + guest.qr_token, {
-      width: 80, margin: 1, color: { dark: '#4A1F5C', light: '#ffffff' },
-    }).catch(() => {})
-  }
+  // Sync state to globals and rebuild card
+  useEffect(() => {
+    window.__WEDDINGIQ_CONFIG__ = config || {}
+    window.__WEDDINGIQ_DESIGN__ = design || {}
+    window.__WEDDINGIQ_VENUES__ = venues || {}
+    const html = buildCardHTML(aiMsg, themeObj, null, { name: guest.name, qr_token: guest.qr_token }, false)
+    setCardHtml(html)
+  }, [aiMsg, config, design, venues, guest.name, guest.qr_token, themeObj])
 
   async function handleRegen() {
     setRegen(true)
@@ -68,15 +65,6 @@ export default function CardModal({ guest, config, design, theme, onClose, onAiM
     onPhotoUrl(guest.id, null)
   }
 
-  const cardData = buildCardHTML(
-    aiMsg,
-    themeObj,
-    null,
-    { ...guest, photo_url: photoPreview },
-    design,
-    config
-  )
-
   return (
     <div className="modal-bg">
       <div className="modal modal-lg">
@@ -85,88 +73,83 @@ export default function CardModal({ guest, config, design, theme, onClose, onAiM
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18 }}>
-          {/* Card preview */}
-          <InviteCard data={cardData} />
+        {/* Full two-sided card preview */}
+        <div style={{ marginBottom:16 }}>
+          <InviteCard html={cardHtml} />
+        </div>
 
-          {/* Right panel */}
-          <div>
-            {/* AI message */}
-            <div className="set-title">AI Message</div>
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:7 }}>
-              <span className="ai-dot" /><span style={{ fontSize:12, color:'var(--muted)' }}>DeepSeek AI</span>
-            </div>
-            <div className="fg">
-              <textarea rows={4} value={aiMsg} onChange={e => { setAiMsg(e.target.value); onAiMessage(guest.id, e.target.value) }}
-                style={{ marginBottom:8 }} />
-              <button className="btn btn-o btn-sm" onClick={handleRegen} disabled={regen}>
-                {regen ? <><div className="spin spin-d" style={{ width:13, height:13 }} /> Generating...</> : '✨ Regenerate'}
-              </button>
-            </div>
+        {/* Action bar */}
+        <div style={{ display:'flex', alignItems:'center', gap:9, flexWrap:'wrap', marginBottom:12 }}>
+          <input type="text" readOnly value={shareUrl}
+            style={{ flex:1, fontSize:11, background:'var(--cream)', border:'1px solid var(--border)',
+                     borderRadius:8, padding:'7px 11px', color:'var(--muted)', minWidth:140 }} />
+          <button className="btn btn-o btn-sm" onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy Link</button>
+          <button className="btn btn-g btn-sm" onClick={() => window.print()}>🖨️ Print</button>
+        </div>
+        <div style={{ fontSize:11.5, color:'var(--muted)', marginBottom:16, lineHeight:1.6 }}>
+          Send to guest — they open their personalised invite with venue map and one-tap directions.
+        </div>
 
-            <div className="divider" />
-
-            {/* Gate photo */}
-            <div className="set-title">
-              Gate Photo <span style={{ fontSize:10, color:'var(--muted)', fontWeight:400, fontFamily:'var(--sans)' }}>— shown to doorman on scan</span>
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:13, padding:12,
-                          background:'var(--cream)', borderRadius:10, border:'1px solid var(--border)' }}>
-              <div className="photo-circle" onClick={() => fileRef.current.click()}>
-                {photoPreview
-                  ? <img src={photoPreview} alt="gate" />
-                  : <span style={{ fontSize:22, color:'var(--muted)' }}>📷</span>}
+        {/* Editing panel - collapsible */}
+        <div style={{ borderTop:'1px solid var(--border)', paddingTop:14 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18 }}>
+            {/* Left: AI Message */}
+            <div>
+              <div className="set-title">AI Message</div>
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:7 }}>
+                <span className="ai-dot" /><span style={{ fontSize:12, color:'var(--muted)' }}>DeepSeek AI</span>
               </div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handlePhotoUpload} />
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:12.5, fontWeight:500, color:'var(--plum)', marginBottom:3 }}>Upload Guest Photo</div>
-                <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.6, marginBottom:7 }}>
-                  Appears on doorman's screen when they scan QR code.
-                </div>
-                <button className="btn btn-o btn-sm" onClick={() => fileRef.current.click()} disabled={photoUploading}>
-                  📷 Choose Photo
+              <div className="fg">
+                <textarea rows={3} value={aiMsg} onChange={e => { setAiMsg(e.target.value); onAiMessage(guest.id, e.target.value) }}
+                  style={{ marginBottom:8 }} />
+                <button className="btn btn-o btn-sm" onClick={handleRegen} disabled={regen}>
+                  {regen ? <><div className="spin spin-d" style={{ width:13, height:13 }} /> Generating...</> : '✨ Regenerate'}
                 </button>
-                {photoPreview && (
-                  <button className="btn btn-sm" style={{ marginLeft:6, background:'transparent', border:'1px solid var(--border)', color:'var(--err)' }}
-                    onClick={removePhoto}>Remove</button>
-                )}
               </div>
             </div>
-            {photoStatus && (
-              <div style={{ fontSize:11, marginTop:5,
-                color: photoStatus.startsWith('✓') ? 'var(--ok)' : photoStatus.startsWith('✗') ? 'var(--err)' : 'var(--muted)' }}>
-                {photoStatus}
+
+            {/* Right: Guest Photo */}
+            <div>
+              <div className="set-title">Gate Photo</div>
+              <div style={{ display:'flex', alignItems:'center', gap:13, padding:12,
+                            background:'var(--cream)', borderRadius:10, border:'1px solid var(--border)' }}>
+                <div className="photo-circle" onClick={() => fileRef.current.click()}>
+                  {photoPreview
+                    ? <img src={photoPreview} alt="gate" />
+                    : <span style={{ fontSize:22, color:'var(--muted)' }}>📷</span>}
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handlePhotoUpload} />
+                <div style={{ flex:1, fontSize:11 }}>
+                  <div style={{ fontWeight:500, color:'var(--plum)', marginBottom:3 }}>Upload Photo</div>
+                  <div style={{ color:'var(--muted)', lineHeight:1.5, marginBottom:6 }}>Shown to doorman on scan</div>
+                  <button className="btn btn-o btn-sm" onClick={() => fileRef.current.click()} disabled={photoUploading}>
+                    📷 Choose
+                  </button>
+                  {photoPreview && (
+                    <button className="btn btn-sm" style={{ marginLeft:6, background:'transparent', border:'1px solid var(--border)', color:'var(--err)', padding:'5px 9px' }}
+                      onClick={removePhoto}>Remove</button>
+                  )}
+                </div>
               </div>
-            )}
-
-            <div className="divider" />
-
-            {/* Share link */}
-            <div className="set-title">Share Invite Link</div>
-            <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-              <input type="text" readOnly value={shareUrl}
-                style={{ background:'var(--cream)', fontSize:11, color:'var(--muted)', flex:1 }} />
-              <button className="btn btn-o btn-sm"
-                onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy</button>
+              {photoStatus && (
+                <div style={{ fontSize:10.5, marginTop:4,
+                  color: photoStatus.startsWith('✓') ? 'var(--ok)' : photoStatus.startsWith('✗') ? 'var(--err)' : 'var(--muted)' }}>
+                  {photoStatus}
+                </div>
+              )}
             </div>
-            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12, lineHeight:1.6 }}>
-              Send to guest — they open their personalised invite on their phone.
-            </div>
+          </div>
 
-            <div className="divider" />
-
-            {/* Large QR */}
-            <div className="set-title">QR Code</div>
+          {/* Large QR */}
+          <div style={{ marginTop:18, borderTop:'1px solid var(--border)', paddingTop:14 }}>
+            <div className="set-title">Check-in QR Code</div>
             <div style={{ display:'flex', alignItems:'center', gap:14 }}>
               <div ref={mountLargeQR} style={{ background:'#fff', padding:7, borderRadius:7,
                 boxShadow:'0 2px 8px rgba(74,31,92,.12)' }} />
               <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.7 }}>
-                Unique check-in QR.<br />Doorman scans at the gate.
+                Unique check-in code for your doorman.<br />Scan at the gate to verify guest arrival.
               </div>
             </div>
-
-            <button className="btn btn-g" style={{ width:'100%', justifyContent:'center', marginTop:14 }}
-              onClick={() => window.print()}>🖨️ Print Card</button>
           </div>
         </div>
       </div>

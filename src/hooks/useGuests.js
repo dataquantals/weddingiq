@@ -2,29 +2,30 @@ import { useState, useEffect, useCallback } from 'react'
 import { loadGuests, upsertGuest, deleteGuest as sbDelete, deleteGuestsBulk as sbDeleteBulk, uploadPhoto } from '../lib/supabase.js'
 import { uuid } from '../lib/helpers.js'
 
-export function useGuests(user) {
+export function useGuests(user, weddingId) {
   const [guests,  setGuests]  = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Load from Supabase on mount
+  // Load from Supabase — scoped by wedding project
   useEffect(() => {
     if (!user) { setGuests([]); setLoading(false); return }
+    if (!weddingId) { setGuests([]); setLoading(false); return }
     setLoading(true)
-    loadGuests(user.id)
+    loadGuests(user.id, weddingId)
       .then(data => { setGuests(data) })
-      .catch(e => console.warn('load:', e.message))
+      .catch(e => { console.warn('load guests:', e.message); setGuests([]) })
       .finally(() => setLoading(false))
-  }, [user])
+  }, [user, weddingId])
 
   const addGuest = useCallback(async (data, photoFile) => {
     const id = uuid()
     let photo_url = null
     if (photoFile) photo_url = await uploadPhoto(id, photoFile)
-    const guest = { ...data, id, user_id: user.id, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString(), photo_url }
+    const guest = { ...data, id, user_id: user.id, wedding_id: weddingId, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString(), photo_url }
     setGuests(prev => [...prev, guest])
     upsertGuest(guest)
     return guest
-  }, [user])
+  }, [user, weddingId])
 
   const updateGuest = useCallback(async (id, data, photoFile) => {
     let photo_url = undefined
@@ -60,11 +61,11 @@ export function useGuests(user) {
   }, [guests])
 
   const importBulk = useCallback(async (rows) => {
-    const newGuests = rows.map(r => ({ ...r, id: uuid(), user_id: user.id, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString() }))
+    const newGuests = rows.map(r => ({ ...r, id: uuid(), user_id: user.id, wedding_id: weddingId, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString() }))
     setGuests(prev => [...prev, ...newGuests])
     await upsertGuest(newGuests)
     return newGuests.length
-  }, [user])
+  }, [user, weddingId])
 
   const clearGuests = useCallback(async () => {
     const ids = guests.map(g => g.id)

@@ -1,9 +1,8 @@
-import InviteCard, { buildCardHTML } from '../components/InviteCard.jsx'
+import UnifiedCardPreview from '../components/UnifiedCardPreview.jsx'
 import { THEMES } from '../lib/constants.js'
+import { findAnyTheme } from '../lib/themesGenerator.js'
 
-export default function InviteScreen({ guestId, guests, design, theme, bgImage, config }) {
-  const guest = guests.find(g => g.qr_token === guestId)
-
+export default function InviteScreen({ guest, design, theme, bgImage, config, venues, canvasPages, selectedBorder }) {
   if (!guest) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)', fontFamily: 'var(--sans)' }}>
@@ -15,7 +14,9 @@ export default function InviteScreen({ guestId, guests, design, theme, bgImage, 
     )
   }
 
-  const cardData = buildCardHTML(guest.ai_message, THEMES.find(t => t.id === theme), bgImage, guest, design, config)
+  const themeObj = findAnyTheme(theme, THEMES)
+  // Merge guest AI message into design for this render
+  const guestDesign = { ...design, personal_note: guest.ai_message || design?.personal_note }
 
   return (
     <div style={{ 
@@ -27,14 +28,23 @@ export default function InviteScreen({ guestId, guests, design, theme, bgImage, 
       padding: '20px 10px' 
     }}>
       <div style={{ 
-        maxWidth: 420, 
+        maxWidth: 640, 
         width: '100%', 
-        background: '#fff', 
-        borderRadius: 16, 
-        overflow: 'hidden', 
-        boxShadow: '0 8px 30px rgba(74,31,92,0.15)' 
+        boxShadow: '0 8px 30px rgba(74,31,92,0.15)',
+        borderRadius: 8,
       }}>
-        <InviteCard data={cardData} />
+        <UnifiedCardPreview
+          config={config}
+          design={guestDesign}
+          theme={themeObj}
+          bgImage={bgImage}
+          guest={guest}
+          guestName={guest.name}
+          venues={venues}
+          canvasPages={canvasPages || [{ objects: [], background: 'transparent' }]}
+          currentPage={0}
+          selectedBorder={selectedBorder}
+        />
       </div>
     </div>
   )

@@ -1,55 +1,94 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { THEMES } from '../lib/constants.js'
-import { callDeepSeek, fmtDate, initials, badgeClass } from '../lib/helpers.js'
-import { uploadPhoto } from '../lib/supabase.js'
-import InviteCard, { buildCardHTML } from '../components/InviteCard.jsx'
-import QRCode from 'qrcode'
-import { useEffect } from 'react'
+import { findAnyTheme } from '../lib/themesGenerator.js'
+import { callDeepSeek, fmtDate, initials } from '../lib/helpers.js'
+import UnifiedCardPreview from '../components/UnifiedCardPreview.jsx'
 import { toBlob } from 'html-to-image'
 
-function CardModal({ guest, design, theme, config, onClose, onRegenMsg, onPhotoUpload, onRemovePhoto, baseUrl, toast }) {
-  const [msg,       setMsg]       = useState(guest.ai_message || '')
-  const [genning,   setGenning]   = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [photoStatus, setPhotoStatus] = useState('')
-  const [sharing,   setSharing]   = useState(false)
-  const fileRef = useRef()
-  const sideQrRef = useRef()
+function VenueInfo({ type = 'ceremony', venues }) {
+  venues = venues || { ceremony: {}, reception: {} }
+
+  const venue = venues[type] || {}
+  const sameAsType = type === 'reception' && venues.reception?.same
+
+  return (
+    <div>
+      {!venue.name && !venue.address ? (
+        <div style={{ padding:12, background:'var(--cream)', borderRadius:8, fontSize:12, color:'var(--muted)', textAlign:'center' }}>
+          No venue information added yet
+        </div>
+      ) : (
+        <>
+          {venue.name && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--plum)', marginBottom:3 }}>VENUE NAME</div>
+              <div style={{ fontSize:13, color:'var(--ink)' }}>{venue.name}</div>
+            </div>
+          )}
+          {venue.time && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--plum)', marginBottom:3 }}>TIME</div>
+              <div style={{ fontSize:13, color:'var(--ink)' }}>{venue.time}</div>
+            </div>
+          )}
+          {venue.address && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--plum)', marginBottom:3 }}>ADDRESS</div>
+              <div style={{ fontSize:13, color:'var(--ink)', lineHeight:1.5 }}>{venue.address}</div>
+              <a
+                href={`https://maps.google.com/?q=${encodeURIComponent(venue.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontSize:11, color:'var(--plum-l)', textDecoration:'none', display:'inline-block', marginTop:5 }}
+              >
+                📍 Open in Google Maps
+              </a>
+            </div>
+          )}
+          {type === 'ceremony' && venue.dress && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--plum)', marginBottom:3 }}>DRESS CODE</div>
+              <div style={{ fontSize:13, color:'var(--ink)' }}>{venue.dress}</div>
+            </div>
+          )}
+          {venue.parking && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--plum)', marginBottom:3 }}>PARKING</div>
+              <div style={{ fontSize:13, color:'var(--ink)', lineHeight:1.5 }}>{venue.parking}</div>
+            </div>
+          )}
+          {venue.notes && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--plum)', marginBottom:3 }}>NOTES</div>
+              <div style={{ fontSize:13, color:'var(--ink)', lineHeight:1.5 }}>{venue.notes}</div>
+            </div>
+          )}
+        </>
+      )}
+      {sameAsType && (
+        <div style={{ padding:10, background:'rgba(45,122,79,.06)', border:'1px solid rgba(45,122,79,.2)', borderRadius:8, fontSize:12, color:'var(--muted)', textAlign:'center' }}>
+          Same location as ceremony
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CardModal({ guest, design, theme, bgImage, config, onClose, baseUrl, toast, venues, canvasPages, selectedBorder }) {
+  const [msg,     setMsg]     = useState(guest.ai_message || '')
+  const [sharing, setSharing] = useState(false)
   const cardRef = useRef()
 
   const shareUrl  = `${baseUrl}?invite=${guest.qr_token}`
   const shareTitle = `${config?.bride || 'Our'} & ${config?.groom || 'Wedding'} Invite`
   const shareText  = `Hi ${guest.name || 'friend'}! Here's your personalised wedding invite.`
 
-  // Side QR (larger, for reference)
+  // Sync globals
   useEffect(() => {
-    if (!sideQrRef.current || !guest.qr_token) return
-    QRCode.toCanvas(sideQrRef.current, 'WEDDING_CHECKIN:' + guest.qr_token, {
-      width: 80, margin: 1, color: { dark:'#4A1F5C', light:'#ffffff' },
-    }).catch(() => {})
-  }, [guest.qr_token])
-
-  async function regen() {
-    setGenning(true)
-    try {
-      const m = await callDeepSeek(`Write a warm, personalised 2-sentence wedding invitation message for a guest named ${guest.name} attending the wedding of ${config?.bride} and ${config?.groom} on ${fmtDate(config?.date)} at ${config?.venue||'a beautiful venue'}. Keep it heartfelt and under 40 words.`)
-      setMsg(m)
-      onRegenMsg(guest.id, m)
-    } catch (e) {}
-    setGenning(false)
-  }
-
-  async function handlePhoto(e) {
-    const file = e.target.files[0]; if (!file) return
-    setUploading(true); setPhotoStatus('Uploading...')
-    const url = await uploadPhoto(guest.id, file)
-    if (url) {
-      onPhotoUpload(guest.id, url)
-      setPhotoStatus('✓ Photo saved — doorman will see this when scanning')
-    } else { setPhotoStatus('✗ Upload failed') }
-    setUploading(false)
-    e.target.value = ''
-  }
+    window.__WEDDINGIQ_CONFIG__ = config || {}
+    window.__WEDDINGIQ_DESIGN__ = design || {}
+    window.__WEDDINGIQ_VENUES__ = venues || {}
+  }, [config, design, venues])
 
   async function shareCard() {
     if (!cardRef.current) return
@@ -81,8 +120,6 @@ function CardModal({ guest, design, theme, config, onClose, onRegenMsg, onPhotoU
     }
   }
 
-  const cardData = buildCardHTML(msg, THEMES.find(t => t.id === theme), null, guest, design, config)
-
   return (
     <div className="modal-bg">
       <div className="modal modal-lg">
@@ -90,95 +127,41 @@ function CardModal({ guest, design, theme, config, onClose, onRegenMsg, onPhotoU
           <span className="modal-title">Invite — {guest.name}</span>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18 }}>
-          <div ref={cardRef} style={{ background:'#f7f2ea', padding:10, borderRadius:16 }}>
-            <InviteCard data={cardData} />
-          </div>
-          <div>
-            <div className="set-title">AI Message</div>
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:7 }}>
-              <span className="ai-dot" /><span style={{ fontSize:12, color:'var(--muted)' }}>DeepSeek AI</span>
-            </div>
-            <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={4} style={{ marginBottom:8 }} />
-            <button className="btn btn-o btn-sm" onClick={regen} disabled={genning}>
-              {genning ? <><span className="spin spin-d" style={{ width:13,height:13 }} /> Generating...</> : '✨ Regenerate'}
-            </button>
 
-            <div className="divider" />
-            <div className="set-title">Share Invite Link</div>
-            <div style={{ display:'flex', gap:8, marginBottom:6 }}>
-              <input type="text" readOnly value={shareUrl} style={{ background:'var(--cream)', fontSize:11, color:'var(--muted)', flex:1 }} />
-              <button className="btn btn-o btn-sm" onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy</button>
-            </div>
-            <div style={{ fontSize:11, color:'var(--muted)', marginBottom:12, lineHeight:1.6 }}>
-              Send to guest — they open their personalised invite with QR on their phone.
-            </div>
-            <button className="btn btn-g" onClick={shareCard} disabled={sharing}
-              style={{ width:'100%', justifyContent:'center', marginBottom:14 }}>
-              {sharing ? <><span className="spin" /> Preparing card...</> : '📤 Share Card Image'}
-            </button>
-            <div style={{ fontSize:10.5, color:'var(--muted)', marginTop:-8, marginBottom:8 }}>
-              We capture the invite design and send/download it so you can drop it in WhatsApp, Email, etc.
-            </div>
+        <div ref={cardRef} style={{ marginBottom:16 }}>
+          <UnifiedCardPreview
+            config={config}
+            design={{ ...design, personal_note: msg }}
+            theme={design?.custom_theme || findAnyTheme(theme, THEMES) || THEMES[0]}
+            bgImage={bgImage}
+            guest={guest}
+            guestName={guest.name}
+            venues={venues}
+            canvasPages={canvasPages || [{ objects: [], background: 'transparent' }]}
+            currentPage={0}
+            selectedBorder={selectedBorder}
+          />
+        </div>
 
-            <div className="divider" />
-            <div className="set-title">
-              Gate Photo{' '}
-              <span style={{ fontSize:10, color:'var(--muted)', fontWeight:400, fontFamily:'var(--sans)' }}>
-                — shown to doorman on scan
-              </span>
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:13, padding:12, background:'var(--cream)', borderRadius:10, border:'1px solid var(--border)' }}>
-              <div className="photo-circle" onClick={() => fileRef.current.click()} style={{ width:66,height:66 }}>
-                {guest.photo_url
-                  ? <img src={guest.photo_url} alt="" />
-                  : <span style={{ fontSize:20, color:'var(--muted)' }}>📷</span>}
-              </div>
-              <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handlePhoto} />
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:12.5, fontWeight:500, color:'var(--plum)', marginBottom:3 }}>Upload Guest Photo</div>
-                <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.55, marginBottom:6 }}>
-                  Appears on doorman's screen when QR is scanned to confirm identity.
-                </div>
-                <div style={{ display:'flex', gap:7 }}>
-                  <button className="btn btn-o btn-sm" onClick={() => fileRef.current.click()} disabled={uploading}>
-                    {uploading ? '⏳ Uploading...' : '📷 Choose Photo'}
-                  </button>
-                  {guest.photo_url && (
-                    <button className="btn btn-sm" style={{ background:'transparent', border:'1px solid var(--border)', color:'var(--err)' }}
-                      onClick={() => { onRemovePhoto(guest.id); setPhotoStatus('') }}>Remove</button>
-                  )}
-                </div>
-                {photoStatus && (
-                  <div style={{ fontSize:11, marginTop:5, color: photoStatus.startsWith('✓') ? 'var(--ok)' : photoStatus.startsWith('✗') ? 'var(--err)' : 'var(--muted)' }}>
-                    {photoStatus}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="divider" />
-            <div className="set-title">QR Code</div>
-            <div style={{ display:'flex', alignItems:'center', gap:13 }}>
-              <div style={{ background:'#fff', padding:7, borderRadius:7, boxShadow:'0 2px 8px rgba(74,31,92,.12)' }}>
-                <canvas ref={sideQrRef} />
-              </div>
-              <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.7 }}>
-                Unique check-in QR.<br />Doorman scans at the gate.
-              </div>
-            </div>
-
-            <button className="btn btn-g" style={{ width:'100%', justifyContent:'center', marginTop:14 }} onClick={() => window.print()}>
-              🖨️ Print Card
-            </button>
-          </div>
+        {/* Action buttons */}
+        <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', marginBottom:14 }}>
+          <input type="text" readOnly value={shareUrl}
+            style={{ flex:1, fontSize:11, background:'var(--cream)', border:'1px solid var(--border)', borderRadius:8, padding:'7px 11px', color:'var(--muted)', minWidth:140 }} />
+          <button className="btn btn-o btn-sm" onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy Link</button>
+          <button className="btn btn-g btn-sm" onClick={() => window.print()}>🖨️ Print</button>
+          <button className="btn btn-g btn-sm" onClick={shareCard} disabled={sharing}>
+            {sharing ? <>Preparing...</> : '📤 Share'}
+          </button>
+        </div>
+        <div style={{ fontSize:11.5, color:'var(--muted)', marginBottom:16, lineHeight:1.6 }}>
+          Send to guest — they open their personalised invite with venue map and one-tap directions.
         </div>
       </div>
     </div>
   )
 }
 
-export default function InviteCards({ guests, design, theme, config, onRegenMsg, onPhotoUpload, onRemovePhoto, toast }) {
+export default function InviteCards({ guests, design, theme, bgImage, config, venues, onRegenMsg, onPhotoUpload, onRemovePhoto, toast, canvasPages, selectedBorder }) {
   const [viewGuest, setViewGuest]  = useState(null)
   const [running,   setRunning]    = useState(false)
   const [progress,  setProgress]   = useState(0)
@@ -262,13 +245,14 @@ export default function InviteCards({ guests, design, theme, config, onRegenMsg,
           guest={guests.find(g => g.id === viewGuest.id) || viewGuest}
           design={design}
           theme={theme}
+          bgImage={bgImage}
           config={config}
+          venues={venues}
           baseUrl={baseUrl}
           onClose={() => setViewGuest(null)}
-          onRegenMsg={onRegenMsg}
-          onPhotoUpload={(id, url) => { onPhotoUpload(id, url); setViewGuest(prev => ({ ...prev, photo_url: url })) }}
-          onRemovePhoto={(id) => { onRemovePhoto(id); setViewGuest(prev => ({ ...prev, photo_url: null })) }}
           toast={toast}
+          canvasPages={canvasPages}
+          selectedBorder={selectedBorder}
         />
       )}
     </div>
