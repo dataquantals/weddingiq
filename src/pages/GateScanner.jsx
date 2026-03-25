@@ -2,12 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import jsQR from 'jsqr'
 import { initials, playSound } from '../lib/helpers.js'
 
-function GatePhoto({ guest, size = 88 }) {
+function GatePhoto({ guest, size = 180 }) {
   if (guest?.photo_url) return (
-    <img src={guest.photo_url} className="gate-photo" style={{ width:size, height:size }} alt="" />
+    <img src={guest.photo_url} className="gate-photo" style={{ width:size, height:size, border: '4px solid var(--gold)', boxShadow: '0 0 30px rgba(201,168,76,.2)' }} alt="" />
   )
   return (
-    <div className="gate-initials" style={{ width:size, height:size }}>
+    <div className="gate-initials" style={{ width:size, height:size, fontSize: size * 0.4, border: '4px solid var(--gold)', background: 'rgba(201,168,76,.1)' }}>
       {initials(guest?.name || '?')}
     </div>
   )
@@ -16,14 +16,11 @@ function GatePhoto({ guest, size = 88 }) {
 function GateResultCard({ type, guest, raw, time, onConfirm, onCancel, confirming }) {
   if (type === 'notfound') {
     return (
-      <div style={{ background: '#1c0f0f', border: '1px solid #3d1b1b', borderRadius: 16, padding: '24px 20px', margin: '20px 16px', textAlign: 'center' }}>
-         <div style={{ fontSize: 50 }}>⚠️</div>
-         <h3 style={{ color: '#ffb3b3', fontSize: 24, fontFamily: 'var(--serif)', margin: '12px 0 6px 0' }}>Not Found</h3>
-         <div style={{ color: '#d99', fontSize: 13, wordBreak: 'break-all', marginBottom: 16 }}>{raw?.slice(0, 40)}</div>
-         <div style={{ background: '#3a1616', color: '#ff8080', padding: '6px 14px', borderRadius: 20, margin: '0 auto 24px auto', width: 'fit-content', fontSize: 13 }}>
-           ✗ Guest not on the list
-         </div>
-         <button onClick={onCancel} style={{ width: '100%', padding: '16px', background: 'transparent', color: '#ff8080', border: 'none', fontSize: 14, fontFamily: 'var(--sans)', cursor: 'pointer', fontWeight: 600 }}>
+      <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+         <div style={{ fontSize: 60, marginBottom: 20 }}>⚠️</div>
+         <h3 style={{ color: '#ffb3b3', fontSize: 28, fontFamily: 'var(--serif)', margin: '0 0 8px 0' }}>Not Found</h3>
+         <div style={{ color: 'rgba(255,255,255,.4)', fontSize: 13, wordBreak: 'break-all', marginBottom: 24, maxWidth: 280, margin: '0 auto 24px' }}>{raw?.slice(0, 40)}</div>
+         <button onClick={onCancel} style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: '#fff', padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
            Scan Next →
          </button>
       </div>
@@ -32,70 +29,54 @@ function GateResultCard({ type, guest, raw, time, onConfirm, onCancel, confirmin
 
   const checkinLabel = 
     type === 'done' ? `✓ Checked in at ${time}` : 
-    type === 'already' ? `⚠ Checked in at ${guest.checked_in_at ? new Date(guest.checked_in_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : 'an unknown time'}` : 
+    type === 'already' ? `⚠ Already Checked in at ${guest.checked_in_at ? new Date(guest.checked_in_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : 'an unknown time'}` : 
     `● Awaiting confirmation`;
 
-  const pillBg = type === 'done' ? '#153621' : type === 'already' ? '#3d2b10' : '#2b2a1a';
   const pillCol = type === 'done' ? '#28cc71' : type === 'already' ? '#ffbc42' : '#d2cc68';
-  const cardBg = type === 'done' ? '#0a1711' : type === 'already' ? '#1a140b' : '#111516';
-  const borderCol = type === 'done' ? '#143521' : type === 'already' ? '#352514' : '#1a2b2e';
-
-  const popTxt = guest.plus_ones > 0 ? `${guest.plus_ones} guest${guest.plus_ones > 1 ? 's' : ''}` : 'No +1';
+  const popTxt = guest.plus_ones > 0 ? `${guest.plus_ones} guest${guest.plus_ones > 1 ? 's' : ''}` : 'None';
 
   return (
-    <div style={{ background: cardBg, border: `1px solid ${borderCol}`, borderRadius: 16, padding: '24px 20px', margin: '20px 16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 400, margin: '0 auto' }}>
        
-       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-          <div style={{ position: 'relative', background: borderCol, borderRadius: '50%', padding: 4 }}>
-             <GatePhoto guest={guest} size={88} />
-             <div style={{ position: 'absolute', top: 0, right: -4, background: '#28cc71', color: '#0a1711', fontSize: 12, fontWeight: 700, borderRadius: '50%', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${cardBg}` }}>
-               {initials(guest?.name || 'G')}
-             </div>
+       <div style={{ marginBottom: 30, textAlign:'center' }}>
+          <GatePhoto guest={guest} size={220} />
+          <h3 style={{ color: '#fff', fontSize: 32, fontFamily: 'var(--serif)', margin: '16px 0 4px 0', fontWeight: 600 }}>{guest.name}</h3>
+          <div style={{ color: pillCol, fontSize: 14, fontWeight: 500, opacity: 0.9 }}>
+            {checkinLabel}
           </div>
        </div>
 
-       <div style={{ textAlign: 'center' }}>
-         <h3 style={{ color: '#fff', fontSize: 26, fontFamily: 'var(--serif)', margin: '0 0 6px 0', fontWeight: 700 }}>{guest.name}</h3>
-         <div style={{ color: '#8b9b91', fontSize: 13, marginBottom: 16 }}>
-           Table {guest.table_number || '—'} &middot; {popTxt} &middot; {guest.rsvp_status}
-         </div>
-       </div>
-
-       <div style={{ background: pillBg, color: pillCol, padding: '6px 16px', borderRadius: 20, margin: '0 auto 24px auto', width: 'fit-content', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-         {checkinLabel}
-       </div>
-
-       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8b9b91', fontSize: 14 }}>
-           <span>Table</span>
-           <span style={{ color: '#fff' }}>{guest.table_number || '—'}</span>
-         </div>
-         <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: 14, display: 'flex', justifyContent: 'space-between', color: '#8b9b91', fontSize: 14 }}>
-           <span>Plus ones</span>
-           <span style={{ color: '#fff' }}>{popTxt === 'No +1' ? 'None' : popTxt}</span>
-         </div>
-         <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: 14, display: 'flex', justifyContent: 'space-between', color: '#8b9b91', fontSize: 14 }}>
-           <span>RSVP</span>
-           <span style={{ color: guest.rsvp_status === 'confirmed' ? '#28cc71' : '#ffbc42', textTransform: 'capitalize' }}>{guest.rsvp_status}</span>
-         </div>
-         <div style={{ borderTop: `1px solid ${borderCol}`, paddingTop: 14, display: 'flex', justifyContent: 'space-between', color: '#8b9b91', fontSize: 14 }}>
-           <span>Check-in time</span>
-           <span style={{ color: '#28cc71' }}>{type === 'done' ? time : (type === 'already' && guest.checked_in_at ? new Date(guest.checked_in_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '—')}</span>
-         </div>
+       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 30, padding: '0 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
+            <span style={{ color: 'rgba(255,255,255,.5)' }}>Table</span>
+            <span style={{ color: '#fff', fontWeight: 500 }}>{guest.table_number || '—'}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
+            <span style={{ color: 'rgba(255,255,255,.5)' }}>Plus ones</span>
+            <span style={{ color: '#fff', fontWeight: 500 }}>{popTxt}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
+            <span style={{ color: 'rgba(255,255,255,.5)' }}>RSVP</span>
+            <span style={{ color: guest.rsvp_status === 'confirmed' ? '#28cc71' : '#ffbc42', textTransform: 'capitalize', fontWeight: 500 }}>{guest.rsvp_status}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
+            <span style={{ color: 'rgba(255,255,255,.5)' }}>Check in</span>
+            <span style={{ color: '#28cc71', fontWeight: 500 }}>{type === 'done' ? time : (type === 'already' && guest.checked_in_at ? new Date(guest.checked_in_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '—')}</span>
+          </div>
        </div>
 
        {type === 'pending' ? (
-         <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
-           <button onClick={onConfirm} disabled={confirming} style={{ width: '100%', padding: '14px', background: '#28cc71', color: '#0a1711', border: 'none', borderRadius: 12, fontSize: 15, fontFamily: 'var(--sans)', cursor: 'pointer', fontWeight: 600 }}>
+         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: '0 20px' }}>
+           <button onClick={onConfirm} disabled={confirming} style={{ width: '100%', padding: '16px', background: '#28cc71', color: '#0a1711', border: 'none', borderRadius: 14, fontSize: 16, cursor: 'pointer', fontWeight: 700 }}>
              {confirming ? 'Confirming...' : '✓ Confirm Check-in'}
            </button>
-           <button onClick={onCancel} style={{ width: '100%', padding: '14px', background: 'transparent', color: '#8b9b91', border: 'none', fontSize: 14, fontFamily: 'var(--sans)', cursor: 'pointer', fontWeight: 500 }}>
+           <button onClick={onCancel} style={{ width: '100%', padding: '12px', background: 'transparent', color: 'rgba(255,255,255,.4)', border: 'none', fontSize: 14, cursor: 'pointer', fontWeight: 500 }}>
              Cancel / Scan Next
            </button>
          </div>
        ) : (
-         <button onClick={onCancel} style={{ width: '100%', padding: '16px', background: 'transparent', color: '#4a2c2c', border: 'none', fontSize: 15, fontFamily: 'var(--sans)', marginTop: 12, cursor: 'pointer', fontWeight: 700 }}>
-           Scan Next →
+         <button onClick={onCancel} style={{ background: 'transparent', color: '#fff', border: 'none', fontSize: 16, letterSpacing: '0.05em', cursor: 'pointer', fontWeight: 700, textTransform: 'uppercase' }}>
+           Scan Next
          </button>
        )}
     </div>
@@ -220,37 +201,32 @@ export default function GateScanner({ guests, onCheckIn, onClose }) {
     <div className="gate-fs">
       {/* Top bar */}
       <div className="gate-topbar">
-        <h2>🚪 Gate Scanner</h2>
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <span style={{ fontSize:12, color:'rgba(255,255,255,.5)' }}>{time}</span>
-          <button onClick={onClose} style={{ background:'rgba(255,255,255,.1)', border:'1px solid rgba(255,255,255,.2)', color:'#fff', padding:'5px 12px', borderRadius:8, cursor:'pointer', fontSize:12, fontFamily:'var(--sans)' }}>
+        <h2>Gate Scanner</h2>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', fontWeight: 500 }}>{time}</span>
+          <button onClick={onClose} style={{ background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.1)', color:'#fff', padding:'6px 12px', borderRadius:8, cursor:'pointer', fontSize:11, fontWeight: 600 }}>
             ✕ Close
           </button>
         </div>
       </div>
 
       {/* Camera */}
-      <div className="cam-wrap">
+      <div className="cam-wrap" style={{ maxHeight: '180px', minHeight: '180px' }}>
         <video ref={videoRef} autoPlay playsInline muted />
         <canvas ref={canvasRef} style={{ display:'none' }} />
         <div className="cam-overlay">
-          <div className="scan-frame">
-            <div className="scan-line" />
-            <div className="scan-corner-tr" />
-            <div className="scan-corner-bl" />
+          <div style={{ border: '2px dashed rgba(255,255,255,.3)', width: 200, height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: '#fff', fontSize: 14, fontWeight: 700, letterSpacing: '0.1em' }}>QR CODE SCANNER</span>
           </div>
-        </div>
-        <div style={{ position:'absolute', bottom:10, left:0, right:0, textAlign:'center', fontSize:11, color:'rgba(255,255,255,.5)' }}>
-          {camStatus}
         </div>
       </div>
 
       {/* Result */}
-      <div className="gate-result-wrap" style={{ padding: 0 }}>
+      <div className="gate-result-wrap" style={{ padding: '24px 0' }}>
         {!result ? (
-          <div className="gate-idle" style={{ marginTop: 60 }}>
-            <div style={{ fontSize:46, opacity:.4 }}>📷</div>
-            <p style={{ fontSize:13, lineHeight:1.6 }}>Point camera at guest's QR code<br />on their invitation</p>
+          <div className="gate-idle">
+            <div style={{ fontSize:50, opacity:.3, marginBottom: 16 }}>📸</div>
+            <p style={{ fontSize:14, lineHeight:1.6, opacity: 0.6 }}>Point camera at QR code</p>
           </div>
         ) : (
           <GateResultCard
@@ -266,17 +242,17 @@ export default function GateScanner({ guests, onCheckIn, onClose }) {
       </div>
 
       {/* Manual input */}
-      <div className="gate-manual">
-        <input ref={manualRef} type="text" placeholder="Manual: paste or type QR token..." onKeyDown={e => e.key === 'Enter' && manual()} />
-        <button onClick={manual} style={{ background:'var(--gold)', color:'#fff', border:'none', padding:'8px 14px', borderRadius:8, cursor:'pointer', fontSize:13, fontFamily:'var(--sans)', fontWeight:500 }}>Go</button>
+      <div className="gate-manual" style={{ background: 'transparent', borderTop: 'none', padding: '10px 20px' }}>
+        <input ref={manualRef} type="text" placeholder="MANUAL ...." onKeyDown={e => e.key === 'Enter' && manual()} style={{ background: '#777', color: '#000', borderRadius: 0, padding: '12px', textAlign: 'center', fontWeight: 'bold' }} />
+        <button onClick={manual} style={{ background:'none', color:'#D06B2F', border:'none', padding:'0 10px', cursor:'pointer', fontSize:14, fontWeight:700 }}>GO</button>
       </div>
 
       {/* Stats */}
-      <div className="gate-stats">
-        <div className="gate-stat"><div className="gate-stat-val">{total}</div><div className="gate-stat-lbl">Total</div></div>
-        <div className="gate-stat"><div className="gate-stat-val" style={{ color:'#7FFFA9' }}>{ci}</div><div className="gate-stat-lbl">Checked In</div></div>
-        <div className="gate-stat"><div className="gate-stat-val" style={{ color:'var(--gold-l)' }}>{total - ci}</div><div className="gate-stat-lbl">Remaining</div></div>
-        <div className="gate-stat"><div className="gate-stat-val" style={{ color:'rgba(255,255,255,.6)' }}>{pct}%</div><div className="gate-stat-lbl">Attendance</div></div>
+      <div className="gate-stats" style={{ borderTop: 'none', paddingBottom: 20 }}>
+        <div className="gate-stat"><div className="gate-stat-val" style={{ color:'#fff', fontSize: 18 }}>{total}</div></div>
+        <div className="gate-stat"><div className="gate-stat-val" style={{ color:'#fff', fontSize: 18 }}>{ci}</div></div>
+        <div className="gate-stat"><div className="gate-stat-val" style={{ color:'#fff', fontSize: 18 }}>{total - ci}</div></div>
+        <div className="gate-stat"><div className="gate-stat-val" style={{ color:'#fff', fontSize: 18 }}>{pct}%</div></div>
       </div>
     </div>
   )
