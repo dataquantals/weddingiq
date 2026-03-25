@@ -4,7 +4,7 @@ export default function Sidebar({ page, onNav, wedding, onGate, user, onSignOut,
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sb-brand" onClick={() => onNav('dashboard')}>
-        <img src="/Assets/wedding%20logo.png" alt="WeddingIQ" style={{ width: 120, height: 'auto', objectFit: 'contain', marginBottom: 4 }} />
+        <img src="/wedding-logo.png" alt="WeddingIQ" style={{ width: 120, height: 'auto', objectFit: 'contain', marginBottom: 4 }} />
       </div>
       <div className="sb-nav">
         {onHome && (
