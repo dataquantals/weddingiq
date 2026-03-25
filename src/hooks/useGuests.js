@@ -20,7 +20,10 @@ export function useGuests(user, weddingId) {
   const addGuest = useCallback(async (data, photoFile) => {
     const id = uuid()
     let photo_url = null
-    if (photoFile) photo_url = await uploadPhoto(id, photoFile)
+    if (photoFile) {
+      try { photo_url = await uploadPhoto(id, photoFile) }
+      catch (e) { console.error('addGuest photo upload:', e.message); throw e }
+    }
     const guest = { ...data, id, user_id: user.id, wedding_id: weddingId, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString(), photo_url }
     setGuests(prev => [...prev, guest])
     upsertGuest(guest)
@@ -29,7 +32,10 @@ export function useGuests(user, weddingId) {
 
   const updateGuest = useCallback(async (id, data, photoFile) => {
     let photo_url = undefined
-    if (photoFile) photo_url = await uploadPhoto(id, photoFile)
+    if (photoFile) {
+      try { photo_url = await uploadPhoto(id, photoFile) }
+      catch (e) { console.error('updateGuest photo upload:', e.message); throw e }
+    }
     setGuests(prev => prev.map(g => g.id === id ? { ...g, ...data, ...(photo_url !== undefined ? { photo_url } : {}) } : g))
     const updated = { ...guests.find(g => g.id === id), ...data, ...(photo_url !== undefined ? { photo_url } : {}) }
     upsertGuest(updated)

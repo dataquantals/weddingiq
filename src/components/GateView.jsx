@@ -48,8 +48,18 @@ export default function GateView({ guests, config, onCheckIn, onClose }) {
     }
   }, [])
 
+  function extractToken(raw) {
+    let t = raw.replace('WEDDING_CHECKIN:', '').trim()
+    try {
+      const url = new URL(t)
+      const inv = url.searchParams.get('invite')
+      if (inv) return inv
+    } catch {}
+    return t
+  }
+
   const lookup = useCallback((raw) => {
-    const token = raw.replace('WEDDING_CHECKIN:', '').trim()
+    const token = extractToken(raw)
     const g = guests.find(x => x.qr_token === token || x.id === token)
     if (!g) { playSound('error'); setResult({ type:'error', raw }); return }
     if (g.checked_in) { playSound('already'); setResult({ type:'already', guest: g }); return }

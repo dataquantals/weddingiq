@@ -39,7 +39,7 @@ export async function uploadPhoto(guestId, file) {
   const ext  = file.name.split('.').pop() || 'jpg'
   const path = `guests/${guestId}.${ext}`
   const { error } = await sb.storage.from('guest-photos').upload(path, file, { upsert: true, contentType: file.type })
-  if (error) { console.warn('photo upload:', error.message); return null }
+  if (error) throw new Error(`Photo upload failed: ${error.message}`)
   const { data } = sb.storage.from('guest-photos').getPublicUrl(path)
   return data.publicUrl
 }

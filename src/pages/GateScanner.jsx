@@ -177,8 +177,20 @@ export default function GateScanner({ guests, onCheckIn, onClose }) {
     requestAnimationFrame(scanLoop)
   }
 
+  function extractToken(raw) {
+    // Strip legacy prefix
+    let t = raw.replace('WEDDING_CHECKIN:', '').trim()
+    // If it looks like a URL, pull the 'invite' query param
+    try {
+      const url = new URL(t)
+      const inv = url.searchParams.get('invite')
+      if (inv) return inv
+    } catch {}
+    return t
+  }
+
   function processToken(raw) {
-    const token = raw.replace('WEDDING_CHECKIN:', '').trim()
+    const token = extractToken(raw)
     const g     = guests.find(x => x.qr_token === token || x.id === token)
     if (!g)          { playSound('error');   setResult({ type:'notfound', raw }) }
     else if (g.checked_in) { playSound('already'); setResult({ type:'already',  guest: g }) }
