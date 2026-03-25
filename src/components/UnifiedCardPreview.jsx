@@ -42,8 +42,8 @@ export default function UnifiedCardPreview({
   useEffect(() => {
     const token = guest?.qr_token
     if (!token) { setQrDataUrl(null); return }
-    const base = window.location.href.split('?')[0]
-    QRCode.toDataURL(`${base}?invite=${token}`, {
+    const base = window.location.origin
+    QRCode.toDataURL(`${base}/?invite=${token}`, {
       width: 120, margin: 1,
       color: { dark: '#2D1540', light: '#FFFFFF' }
     }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
