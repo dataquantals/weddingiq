@@ -644,14 +644,13 @@
             menu.remove();
             openModal(p, idx);
           });
-          menu.querySelector('[data-action="delete"]').addEventListener('click', () => {
+          menu.querySelector('[data-action="delete"]').addEventListener('click', async () => {
             menu.remove();
-            if (confirm(`Delete '${(p.bride || 'Bride')} & ${(p.groom || 'Groom')}'? This cannot be undone.`)) {
-              projectList = projectList.filter((_, i) => i !== idx);
-              localStorage.setItem(storageKey, JSON.stringify(projectList));
-              toast('Project deleted', 'ok');
-              render({ ...context, projects: projectList });
-            }
+            if (!confirm(`Delete '${(p.bride || 'Bride')} & ${(p.groom || 'Groom')}'? This cannot be undone.`)) return;
+            const { error } = await sb.from('weddings').delete().eq('id', p.id);
+            if (error) { toast('Error deleting project', 'err'); return; }
+            toast('Project deleted', 'ok');
+            await init();
           });
 
           const closeMenu = () => { menu.remove(); document.removeEventListener('click', closeMenu); };
@@ -851,43 +850,41 @@
 
       document.getElementById('modalCancel').onclick = () => { modal.dataset.hidden = 'true'; };
 
-      form.onsubmit = (e) => {
+      form.onsubmit = async (e) => {
         e.preventDefault();
         const bride = form.bride.value.trim();
         const groom = form.groom.value.trim();
-        const date = form.date.value;
+        const date  = form.date.value;
         let hasErr = false;
         if (!bride) { document.getElementById('errBride').textContent = 'Required'; hasErr = true; }
         if (!groom) { document.getElementById('errGroom').textContent = 'Required'; hasErr = true; }
-        if (!date) { document.getElementById('errDate').textContent = 'Required'; hasErr = true; }
+        if (!date)  { document.getElementById('errDate').textContent  = 'Required'; hasErr = true; }
         if (hasErr) return;
 
-        const storageKey = 'wiq_projects_' + window.__currentUser.id;
-        let list = JSON.parse(localStorage.getItem(storageKey) || '[]');
+        const saveBtn = document.getElementById('modalSave');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
 
         const payload = {
-          id: isEdit ? editProject.id : 'p_' + Date.now(),
+          ...(isEdit && editProject.id ? { id: editProject.id } : {}),
+          user_id: window.__currentUser.id,
           bride, groom, date,
-          venue: form.venue.value.trim() || '',
-          hosts: form.hosts.value.trim() || '',
-          address: form.address.value.trim() || '', // Use native form object
+          venue:   form.venue.value.trim()  || '',
+          hosts:   form.hosts.value.trim()  || '',
+          address: document.getElementById('modalAddress').value.trim() || '',
           lat: window._npLat,
           lng: window._npLng,
-          guestCount: isEdit ? (editProject.guestCount ?? 0) : 0,
-          checkedIn: isEdit ? (editProject.checkedIn ?? 0) : 0,
-          createdAt: isEdit ? (editProject.createdAt || new Date().toISOString()) : new Date().toISOString()
         };
 
-        if (isEdit) {
-          list[editIndex] = { ...list[editIndex], ...payload };
-        } else {
-          list.push(payload);
-        }
+        const { error } = await sb.from('weddings').upsert(payload, { onConflict: 'id' });
+        saveBtn.disabled = false;
+        saveBtn.textContent = isEdit ? 'Save Changes' : 'Create Project';
 
-        localStorage.setItem(storageKey, JSON.stringify(list));
+        if (error) { toast('Error saving project: ' + error.message, 'err'); return; }
+
         modal.dataset.hidden = 'true';
         toast(isEdit ? 'Project updated' : 'Project created', 'ok');
-        render({ user: window.__currentUser, projects: list });
+        await init();
       };
     }
 
@@ -901,12 +898,17 @@
       const user = session.user;
       window.__currentUser = user;
 
-      const storageKey = 'wiq_projects_' + user.id;
-      let projects = [];
-      try {
-        const raw = localStorage.getItem(storageKey);
-        if (raw) projects = JSON.parse(raw);
-      } catch (_) {}
+      // Load projects and guest counts from Supabase
+      const [{ data: projectRows }, { data: guestRows }] = await Promise.all([
+        sb.from('weddings').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        sb.from('guests').select('id, wedding_id, checked_in').eq('user_id', user.id)
+      ]);
+
+      const projects = (projectRows || []).map(p => ({
+        ...p,
+        guestCount: (guestRows || []).filter(g => g.wedding_id === p.id).length,
+        checkedIn:  (guestRows || []).filter(g => g.wedding_id === p.id && g.checked_in).length,
+      }));
 
       render({ user, projects });
     }

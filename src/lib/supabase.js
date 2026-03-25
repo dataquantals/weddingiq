@@ -58,13 +58,13 @@ export async function deleteAvatar(userId) {
 }
 
 export async function loadWeddings(userId) {
-  const { data, error } = await sb.from('weddings').select('*').or(`user_id.eq.${userId},user_id.is.null`).order('created_at', { ascending: false })
+  const { data, error } = await sb.from('weddings').select('*').eq('user_id', userId).order('created_at', { ascending: false })
   if (error) throw error
   return data || []
 }
 
 export async function loadWedding(userId) {
-  const { data, error } = await sb.from('weddings').select('*').or(`user_id.eq.${userId},user_id.is.null`).single()
+  const { data, error } = await sb.from('weddings').select('*').eq('user_id', userId).single()
   if (error && error.code !== 'PGRST116') throw error
   return data
 }
