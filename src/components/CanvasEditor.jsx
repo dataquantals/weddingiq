@@ -1,5 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
 
+// ── CSS Animations ──────────────────────────────────────────────────────────
+const CANVAS_STYLES = `
+  @keyframes borderPulse {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 0 0 0 2px #4A1F5C, 0 2px 8px rgba(0,0,0,0.5);
+    }
+    50% { 
+      transform: scale(1.15);
+      box-shadow: 0 0 0 3px #C9A84C, 0 0 16px rgba(201,168,76,0.8), 0 2px 12px rgba(0,0,0,0.6);
+    }
+  }
+`
+
 // ── Shape definitions ───────────────────────────────────────────────────────
 const SHAPES = [
   { id: 'rectangle', label: 'Rectangle', icon: '▬', svgPath: null },
@@ -921,6 +935,7 @@ export default function CanvasEditor({ pages, currentPage, onPagesChange, border
 
   return (
     <div style={{ display: 'flex', gap: 16, height: '100%' }}>
+      <style>{CANVAS_STYLES}</style>
       <InlineTextToolbar />
       {/* Canvas */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -996,15 +1011,18 @@ export default function CanvasEditor({ pages, currentPage, onPagesChange, border
                     title={`Drag to resize border (${Math.round(borderScale * 100)}%)`}
                     style={{
                       position: 'absolute',
-                      left: hx - 7, top: hy - 7,
-                      width: 14, height: 14,
-                      background: borderSelected ? '#4A1F5C' : 'rgba(74,31,92,0.55)',
-                      border: '2.5px solid #fff',
+                      left: hx - 10, top: hy - 10,
+                      width: 20, height: 20,
+                      background: borderSelected ? '#C9A84C' : '#4A1F5C',
+                      border: '3px solid #fff',
                       borderRadius: '50%',
                       cursor: h.cursor,
                       zIndex: 1002,
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                      transition: 'background .15s',
+                      boxShadow: borderSelected 
+                        ? '0 0 0 2px #C9A84C, 0 0 12px rgba(201,168,76,0.6), 0 2px 8px rgba(0,0,0,0.5)'
+                        : '0 0 0 2px #4A1F5C, 0 2px 8px rgba(0,0,0,0.5)',
+                      transition: 'all .2s',
+                      animation: borderSelected ? 'none' : 'borderPulse 2s ease-in-out infinite',
                     }}
                   />
                 )
