@@ -147,8 +147,8 @@ export default function UnifiedCardPreview({
           />
         )}
 
-        {/* Traditional Wedding Details — behind canvas objects (zIndex: -1) */}
-        {config && (
+        {/* Traditional Wedding Details — only shown when no canvas objects are present */}
+        {config && !page.objects?.length && (
           <div style={{ 
             position: 'absolute', 
             top: 60, left: 0, right: 0, 
