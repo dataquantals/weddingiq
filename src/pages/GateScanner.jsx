@@ -2,13 +2,26 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import jsQR from 'jsqr'
 import { initials, playSound } from '../lib/helpers.js'
 
-function GatePhoto({ guest, size = 180 }) {
-  if (guest?.photo_url) return (
-    <img src={guest.photo_url} className="gate-photo" style={{ width:size, height:size, border: '4px solid var(--gold)', boxShadow: '0 0 30px rgba(201,168,76,.2)' }} alt="" />
-  )
+function GatePhoto({ guest }) {
+  const sz = 'min(88vw, 320px)'
+  const common = {
+    width: sz, height: sz,
+    borderRadius: '50%',
+    border: '4px solid var(--gold)',
+    boxShadow: '0 0 40px rgba(201,168,76,.25)',
+    display: 'block',
+    objectFit: 'cover',
+  }
   return (
-    <div className="gate-initials" style={{ width:size, height:size, fontSize: size * 0.4, border: '4px solid var(--gold)', background: 'rgba(201,168,76,.1)' }}>
-      {initials(guest?.name || '?')}
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      {guest?.photo_url
+        ? <img src={guest.photo_url} className="gate-photo" style={common} alt="" />
+        : <div className="gate-initials" style={{ ...common, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 72, background: 'rgba(201,168,76,.1)' }}>{initials(guest?.name || '?')}</div>
+      }
+      {/* crosshair overlay */}
+      <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', pointerEvents: 'none',
+        backgroundImage: 'linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px)',
+        backgroundSize: '50% 50%' }} />
     </div>
   )
 }
@@ -35,35 +48,32 @@ function GateResultCard({ type, guest, raw, time, onConfirm, onCancel, confirmin
   const pillCol = type === 'done' ? '#28cc71' : type === 'already' ? '#ffbc42' : '#d2cc68';
   const popTxt = guest.plus_ones > 0 ? `${guest.plus_ones} guest${guest.plus_ones > 1 ? 's' : ''}` : 'None';
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: 400, margin: '0 auto' }}>
-       
-       <div style={{ marginBottom: 30, textAlign:'center' }}>
-          <GatePhoto guest={guest} size={220} />
-          <h3 style={{ color: '#fff', fontSize: 32, fontFamily: 'var(--serif)', margin: '16px 0 4px 0', fontWeight: 600 }}>{guest.name}</h3>
-          <div style={{ color: pillCol, fontSize: 14, fontWeight: 500, opacity: 0.9 }}>
-            {checkinLabel}
-          </div>
-       </div>
+  const checkInTime = type === 'done' ? time : (type === 'already' && guest.checked_in_at ? new Date(guest.checked_in_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '—')
 
-       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 30, padding: '0 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
-            <span style={{ color: 'rgba(255,255,255,.5)' }}>Table</span>
-            <span style={{ color: '#fff', fontWeight: 500 }}>{guest.table_number || '—'}</span>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+
+      {/* Large photo */}
+      <div style={{ marginBottom: 18, textAlign: 'center' }}>
+        <GatePhoto guest={guest} />
+        <h3 style={{ color: '#fff', fontSize: 28, fontFamily: 'var(--serif)', margin: '14px 0 4px 0', fontWeight: 600, letterSpacing: '.01em' }}>{guest.name}</h3>
+        <div style={{ color: pillCol, fontSize: 13, fontWeight: 600, letterSpacing: '.04em', textTransform: 'uppercase' }}>{checkinLabel}</div>
+      </div>
+
+      {/* 2-column stats grid */}
+      <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', marginBottom: 20 }}>
+        {[
+          { label: 'Table',     val: guest.table_number || '—',    color: '#fff' },
+          { label: 'Plus ones', val: popTxt,                        color: '#fff' },
+          { label: 'RSVP',     val: guest.rsvp_status || '—',      color: guest.rsvp_status === 'confirmed' ? '#28cc71' : '#ffbc42' },
+          { label: 'Check in', val: checkInTime,                    color: '#28cc71' },
+        ].map(({ label, val, color }) => (
+          <div key={label} style={{ padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>{label}</div>
+            <div style={{ fontSize: 17, fontWeight: 600, color, textTransform: 'capitalize' }}>{val}</div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
-            <span style={{ color: 'rgba(255,255,255,.5)' }}>Plus ones</span>
-            <span style={{ color: '#fff', fontWeight: 500 }}>{popTxt}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
-            <span style={{ color: 'rgba(255,255,255,.5)' }}>RSVP</span>
-            <span style={{ color: guest.rsvp_status === 'confirmed' ? '#28cc71' : '#ffbc42', textTransform: 'capitalize', fontWeight: 500 }}>{guest.rsvp_status}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16 }}>
-            <span style={{ color: 'rgba(255,255,255,.5)' }}>Check in</span>
-            <span style={{ color: '#28cc71', fontWeight: 500 }}>{type === 'done' ? time : (type === 'already' && guest.checked_in_at ? new Date(guest.checked_in_at).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}) : '—')}</span>
-          </div>
-       </div>
+        ))}
+      </div>
 
        {type === 'pending' ? (
          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10, padding: '0 20px' }}>
