@@ -18,6 +18,7 @@ export default function Sidebar({ page, onNav, wedding, onGate, user, onSignOut,
           { id: 'dashboard', icon: '📊', label: 'Dashboard' },
           { id: 'guests',    icon: '👥', label: 'Guest List' },
           { id: 'designer',  icon: '🎨', label: 'Card Designer' },
+          { id: 'templates', icon: '🖼️', label: 'Templates' },
           { id: 'cards',     icon: '💌', label: 'Invite Cards' },
         ].map(n => (
           <div key={n.id} className={`sb-item ${page === n.id ? 'active' : ''}`} onClick={() => nav(n.id)}>
