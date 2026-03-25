@@ -827,6 +827,27 @@ export default function CanvasEditor({ pages, currentPage, onPagesChange, border
     setSelectedId(newObj.id)
   }
 
+  const addGuestName = () => {
+    const newObj = {
+      id: 'guest-name-' + Date.now(),
+      type: 'text',
+      isGuestName: true,
+      content: '{{GUEST_NAME}}',
+      x: 150,
+      y: 350,
+      width: 300,
+      height: 50,
+      fontSize: 20,
+      fontWeight: 600,
+      color: themeObj.txt || '#2D1540',
+      fontFamily: "'Cormorant Garamond', serif",
+      textAlign: 'center',
+      zIndex: page.objects.length + 1
+    }
+    updatePage({ objects: [...page.objects, newObj] })
+    setSelectedId(newObj.id)
+  }
+
   const addShape = (shapeId) => {
     const isLine = shapeId === 'line'
     const newObj = {
@@ -1052,6 +1073,23 @@ export default function CanvasEditor({ pages, currentPage, onPagesChange, border
                 ))}
               </div>
             )}
+            <button
+              className="btn btn-sm"
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, var(--plum), #6B2D8A)',
+                color: '#fff',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+              onClick={addGuestName}
+              title="Add a placeholder that shows each guest's name on their invite"
+            >
+              👤 +Add Invite Name
+            </button>
           </div>
         </div>
 
@@ -1140,9 +1178,9 @@ export default function CanvasEditor({ pages, currentPage, onPagesChange, border
                     gap: 8
                   }}
                 >
-                  <span>{obj.type === 'text' ? '📝' : obj.type === 'shape' ? '⬡' : '🖼️'}</span>
+                  <span>{obj.isGuestName ? '👤' : obj.type === 'text' ? '📝' : obj.type === 'shape' ? '⬡' : '🖼️'}</span>
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {obj.type === 'text' ? obj.content : obj.type === 'shape' ? (SHAPES.find(s => s.id === obj.shape)?.label || 'Shape') : 'Image'}
+                    {obj.isGuestName ? 'Invite Name' : obj.type === 'text' ? obj.content : obj.type === 'shape' ? (SHAPES.find(s => s.id === obj.shape)?.label || 'Shape') : 'Image'}
                   </span>
                   <span style={{ fontSize: 10, color: 'var(--muted)' }}>z:{obj.zIndex || 1}</span>
                 </div>

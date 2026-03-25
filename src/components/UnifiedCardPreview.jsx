@@ -48,6 +48,7 @@ export default function UnifiedCardPreview({
   const hasRealGuest  = resolvedGuest.length > 0
   const displayGuest  = resolvedGuest || 'Guest'
   const substitute    = (text) => (text || '')
+    .replace(/\{\{GUEST_NAME\}\}/g, displayGuest)
     .replace(/\{guest\}/gi, displayGuest)
     .replace(/\{name of (?:the )?invit(?:e|ee)\}/gi, displayGuest)
 
