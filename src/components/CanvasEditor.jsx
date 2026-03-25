@@ -1,19 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
 
-// ── CSS Animations ──────────────────────────────────────────────────────────
-const CANVAS_STYLES = `
-  @keyframes borderPulse {
-    0%, 100% { 
-      transform: scale(1);
-      box-shadow: 0 0 0 2px #4A1F5C, 0 2px 8px rgba(0,0,0,0.5);
-    }
-    50% { 
-      transform: scale(1.15);
-      box-shadow: 0 0 0 3px #C9A84C, 0 0 16px rgba(201,168,76,0.8), 0 2px 12px rgba(0,0,0,0.6);
-    }
-  }
-`
-
 // ── Shape definitions ───────────────────────────────────────────────────────
 const SHAPES = [
   { id: 'rectangle', label: 'Rectangle', icon: '▬', svgPath: null },
@@ -935,7 +921,18 @@ export default function CanvasEditor({ pages, currentPage, onPagesChange, border
 
   return (
     <div style={{ display: 'flex', gap: 16, height: '100%' }}>
-      <style>{CANVAS_STYLES}</style>
+      <style>{`
+        @keyframes borderPulse {
+          0%, 100% { 
+            transform: scale(1);
+            box-shadow: 0 0 0 2px #4A1F5C, 0 2px 8px rgba(0,0,0,0.5);
+          }
+          50% { 
+            transform: scale(1.15);
+            box-shadow: 0 0 0 3px #C9A84C, 0 0 16px rgba(201,168,76,0.8), 0 2px 12px rgba(0,0,0,0.6);
+          }
+        }
+      `}</style>
       <InlineTextToolbar />
       {/* Canvas */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
