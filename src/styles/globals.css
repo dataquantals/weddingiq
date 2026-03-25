@@ -60,42 +60,100 @@ body { font-family: var(--sans); background: var(--cream); color: var(--ink); mi
 .stat-val { font-family: var(--serif); font-size: 30px; font-weight: 500; color: var(--plum); margin-top: 3px; line-height: 1; }
 .stat-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
 
-/* Responsive adjustments */
+/* ═══════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+═══════════════════════════════════════════ */
+
 @media (max-width: 1024px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* ── Tablet & mobile layout ── */
 @media (max-width: 768px) {
   .app-layout { flex-direction: column; }
   .sidebar { position: fixed; transform: translateX(-100%); width: 260px; height: 100vh; }
   .sidebar.open { transform: translateX(0); }
   .mobile-toggle { display: flex; position: sticky; top: 0; z-index: 1500; }
-  
-  .page-header { padding: 20px; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+
+  .page-header { padding: 16px; flex-direction: column; gap: 10px; margin-bottom: 12px; }
   .ph-date { align-self: flex-start; }
-  .page-content { padding: 0 16px 20px; }
-  
+  .page-content { padding: 0 12px 24px; }
+
   .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .stat-val { font-size: 24px; }
-  
+  .stat { padding: 12px 14px; }
+
   .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1000; }
   .sidebar-overlay.open { display: block; }
-  
-  .sh { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .sh > div { flex-wrap: wrap; }
+
+  .sh { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .sh > div { flex-wrap: wrap; gap: 8px; }
+
+  /* Card designer */
+  .cd-grid { grid-template-columns: 1fr; }
+
+  /* Modal full-screen on tablet */
+  .modal { max-width: 100%; margin: 0; border-radius: 16px; padding: 20px; }
+  .modal-bg { padding: 12px; align-items: flex-end; }
+
+  /* Table: horizontal scroll */
+  .tw { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--r-lg); }
+  table { min-width: 540px; }
 }
 
+/* ── Phone ── */
 @media (max-width: 480px) {
-  .stats-row { grid-template-columns: 1fr; }
-  .ph-title { font-size: 20px; }
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ph-title { font-size: 19px; }
+  .ph-sub { font-size: 12px; }
   .fr { grid-template-columns: 1fr; }
-  .btn-p { width: 100%; justify-content: center; }
+  .btn-p, .btn-g, .btn-o { padding: 9px 14px; font-size: 13px; }
   .sh > div { width: 100%; flex-wrap: wrap; }
-  .sh > div > button { flex: 1; justify-content: center; }
+  .sh > div > button { flex: 1; min-width: 120px; justify-content: center; }
+
+  /* Cards */
+  .card { padding: 16px; }
+
+  /* Section header */
+  .sh-title { font-size: 16px; }
+
+  /* Config screen */
+  .cfg-screen { padding: 16px; }
+  .cfg-title { font-size: 24px; }
+
+  /* RSVP card */
+  .rsvp-card { padding: 22px 18px; }
+  .rsvp-title { font-size: 22px; }
+
+  /* Page header */
+  .page-header { padding: 12px; }
+  .page-content { padding: 0 10px 20px; }
+
+  /* Toasts full-width on mobile */
+  .toast { bottom: 12px; right: 12px; left: 12px; max-width: 100%; font-size: 13px; text-align: center; }
+
+  /* Modal full-screen on phone */
+  .modal-bg { padding: 0; align-items: flex-end; }
+  .modal { border-radius: 20px 20px 0 0; max-height: 95vh; }
+  .modal-lg { max-width: 100%; }
+}
+
+/* ── Very small phones ── */
+@media (max-width: 360px) {
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-val { font-size: 20px; }
+  .page-content { padding: 0 8px 16px; }
 }
 
 @media (max-width: 900px) {
   .cd-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Invite screen: ensure card fills phone width ── */
+@media (max-width: 620px) {
+  /* InviteScreen wrapper gets tight padding so card maximises width */
+  .invite-outer { padding: 6px !important; }
+  .invite-card-wrap { box-shadow: none !important; }
 }
 
 /* Custom grids */

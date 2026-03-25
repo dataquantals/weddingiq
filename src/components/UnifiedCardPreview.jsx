@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import QRCode from 'qrcode'
 
 // Map app definitions — each takes an address string and returns a URL
@@ -26,7 +26,20 @@ export default function UnifiedCardPreview({
   selectedBorder 
 }) {
   const [qrDataUrl, setQrDataUrl] = useState(null)
-  
+  const [scale, setScale] = useState(1)
+  const wrapRef = useRef()
+
+  // Scale card to fit container width
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const update = () => setScale(Math.min(1, el.offsetWidth / 600))
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   // Direction picker state: null → hidden | 'venue' → venue step | { address, label } → app step
   const [dirPicker, setDirPicker] = useState(null)
 
@@ -108,14 +121,17 @@ export default function UnifiedCardPreview({
   }
 
   return (
-    <div style={{ margin: '0 auto', width: 600 }}>
+    <div ref={wrapRef} style={{ margin: '0 auto', width: '100%', maxWidth: 600 }}>
 
-      {/* ── The 600×800 card ── */}
+      {/* ── Scale wrapper: maintains correct visual height ── */}
+      <div style={{ position: 'relative', height: scale * 800, overflow: 'hidden' }}>
       <div
         style={{
-          position: 'relative',
+          position: 'absolute', top: 0, left: 0,
           width: 600,
           height: 800,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
           ...backgroundStyle,
           border: '1px solid var(--border)',
           borderRadius: 8,
@@ -345,6 +361,7 @@ export default function UnifiedCardPreview({
           </div>
         )}
       </div>
+      </div>{/* end scale wrapper */}
 
       {/* ── Direction Picker Modal ── */}
       {dirPicker && (

@@ -19,15 +19,15 @@ export default function InviteScreen({ guest, design, theme, bgImage, config, ve
   const guestDesign = { ...design, personal_note: guest.ai_message || design?.personal_note }
 
   return (
-    <div style={{ 
+    <div className="invite-outer" style={{ 
       minHeight: '100vh', 
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center', 
       background: 'var(--cream-d)', 
-      padding: '20px 10px' 
+      padding: '16px 8px' 
     }}>
-      <div style={{ 
+      <div className="invite-card-wrap" style={{ 
         maxWidth: 640, 
         width: '100%', 
         boxShadow: '0 8px 30px rgba(74,31,92,0.15)',
