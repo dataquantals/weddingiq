@@ -41,7 +41,13 @@ export function useDesign(user) {
 
   const patchDesign = (patch) => {
     setHistory(h => [...h.slice(-4), { ...design }])
-    setDesign(d => ({ ...d, ...patch }))
+    if ('bgImage' in patch) {
+      setBgImage(patch.bgImage)
+      const { bgImage: _, ...rest } = patch
+      if (Object.keys(rest).length) setDesign(d => ({ ...d, ...rest }))
+    } else {
+      setDesign(d => ({ ...d, ...patch }))
+    }
   }
 
   const undo = () => {

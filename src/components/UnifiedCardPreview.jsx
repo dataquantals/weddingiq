@@ -147,8 +147,8 @@ export default function UnifiedCardPreview({
           />
         )}
 
-        {/* Traditional Wedding Details — only shown when no canvas objects are present */}
-        {config && !page.objects?.length && (
+        {/* Traditional Wedding Details — hidden when custom bgImage or canvas objects exist */}
+        {config && !page.objects?.length && !bgImage && (
           <div style={{ 
             position: 'absolute', 
             top: 60, left: 0, right: 0, 
@@ -272,96 +272,96 @@ export default function UnifiedCardPreview({
           return null
         })}
 
-        {/* ── QR Code + Directions — paired side-by-side at bottom of card ── */}
-        {showBottomBar && (
-          <div style={{
-            position: 'absolute',
-            bottom: 0, left: 0, right: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px 24px',
-            background: 'rgba(0,0,0,0.42)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-            zIndex: 500,
-          }}>
-            {/* Paired container */}
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 0,
-              background: 'rgba(255,255,255,0.06)',
-              border: `1px solid ${themeObj.acc}44`,
-              borderRadius: 14,
-              overflow: 'hidden',
-            }}>
-
-              {/* QR Code block */}
-              {qrDataUrl && (
-                <div style={{ padding: '12px 18px', textAlign: 'center', flexShrink: 0 }}>
-                  <img
-                    src={qrDataUrl}
-                    alt="Gate QR Code"
-                    style={{ width: 82, height: 82, display: 'block', borderRadius: 6, border: `2px solid ${themeObj.acc}`, background: '#fff' }}
-                  />
-                  <div style={{ fontSize: 9, color: '#fff', marginTop: 5, fontFamily: 'var(--sans)', letterSpacing: '0.07em', textTransform: 'uppercase', fontWeight: 600, opacity: 0.75 }}>
-                    🚪 Gate Check-In
-                  </div>
-                </div>
-              )}
-
-              {/* Divider — only when both QR and button exist */}
-              {qrDataUrl && hasRealGuest && (
-                <div style={{ width: 1, alignSelf: 'stretch', background: `${themeObj.acc}33` }} />
-              )}
-
-              {/* Directions button block — always shown when there's a real guest */}
-              {hasRealGuest && (
-                <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                  <button
-                    onClick={() => {
-                      if (!bestAddress) return
-                      const hasMultiple = ceremonyAddr && receptionAddr && !sameVenue
-                      if (hasMultiple) {
-                        setDirPicker('venue')
-                      } else {
-                        setDirPicker({
-                          address: bestAddress,
-                          label: ceremonyAddr ? '⛪ Ceremony' : receptionAddr ? '🥂 Reception' : '📍 Venue',
-                        })
-                      }
-                    }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 7,
-                      padding: '10px 22px',
-                      background: bestAddress ? (themeObj.acc || '#C9A84C') : 'rgba(255,255,255,0.15)',
-                      color: bestAddress ? (themeObj.txt || '#2D1540') : 'rgba(255,255,255,0.5)',
-                      border: bestAddress ? 'none' : '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: 24,
-                      fontSize: 13, fontFamily: 'var(--sans)', fontWeight: 700,
-                      cursor: bestAddress ? 'pointer' : 'default',
-                      letterSpacing: '0.02em',
-                      boxShadow: bestAddress ? '0 2px 10px rgba(0,0,0,0.4)' : 'none',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title={bestAddress ? '' : 'Venue address not configured'}
-                  >
-                    📍 Click for Directions
-                  </button>
-                  {(ceremonyAddr && receptionAddr && !sameVenue) && (
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,.5)', fontFamily: 'var(--sans)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      2 venues available
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </div>
-          </div>
-        )}
       </div>
       </div>{/* end scale wrapper */}
+
+      {/* ── QR Code + Directions — extension strip BELOW the card ── */}
+      {showBottomBar && (
+        <div style={{
+          background: 'rgba(10,6,18,0.95)',
+          borderRadius: '0 0 8px 8px',
+          borderTop: `2px solid ${themeObj.acc}55`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '14px 20px',
+          gap: 0,
+        }}>
+          {/* Inner pill */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: 'rgba(255,255,255,0.05)',
+            border: `1px solid ${themeObj.acc}44`,
+            borderRadius: 14,
+            overflow: 'hidden',
+          }}>
+
+            {/* QR Code block */}
+            {qrDataUrl && (
+              <div style={{ padding: '12px 18px', textAlign: 'center', flexShrink: 0 }}>
+                <img
+                  src={qrDataUrl}
+                  alt="Gate QR Code"
+                  style={{ width: 80, height: 80, display: 'block', borderRadius: 6, border: `2px solid ${themeObj.acc}`, background: '#fff' }}
+                />
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.7)', marginTop: 5, fontFamily: 'var(--sans)', letterSpacing: '0.07em', textTransform: 'uppercase', fontWeight: 600 }}>
+                  🚪 Gate Check-In
+                </div>
+              </div>
+            )}
+
+            {/* Divider */}
+            {qrDataUrl && hasRealGuest && (
+              <div style={{ width: 1, alignSelf: 'stretch', background: `${themeObj.acc}33` }} />
+            )}
+
+            {/* Directions button */}
+            {hasRealGuest && (
+              <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.45)', fontFamily: 'var(--sans)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Venue Directions
+                </div>
+                <button
+                  onClick={() => {
+                    if (!bestAddress) return
+                    const hasMultiple = ceremonyAddr && receptionAddr && !sameVenue
+                    if (hasMultiple) {
+                      setDirPicker('venue')
+                    } else {
+                      setDirPicker({
+                        address: bestAddress,
+                        label: ceremonyAddr ? '⛪ Ceremony' : receptionAddr ? '🥂 Reception' : '📍 Venue',
+                      })
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '10px 22px',
+                    background: bestAddress ? (themeObj.acc || '#C9A84C') : 'rgba(255,255,255,0.12)',
+                    color: bestAddress ? (themeObj.txt || '#2D1540') : 'rgba(255,255,255,0.4)',
+                    border: 'none',
+                    borderRadius: 24,
+                    fontSize: 13, fontFamily: 'var(--sans)', fontWeight: 700,
+                    cursor: bestAddress ? 'pointer' : 'default',
+                    whiteSpace: 'nowrap',
+                    boxShadow: bestAddress ? '0 2px 10px rgba(0,0,0,0.4)' : 'none',
+                  }}
+                  title={bestAddress ? '' : 'Venue address not configured'}
+                >
+                  📍 Click for Directions
+                </button>
+                {(ceremonyAddr && receptionAddr && !sameVenue) && (
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', fontFamily: 'var(--sans)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    2 venues available
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {/* ── Direction Picker Modal ── */}
       {dirPicker && (

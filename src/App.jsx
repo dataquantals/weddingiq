@@ -22,6 +22,7 @@ import CardDesigner from './pages/CardDesigner.jsx'
 import Settings from './pages/Settings.jsx'
 import EditWedding from './pages/EditWedding.jsx'
 import VenuesDirections from './pages/VenuesDirections.jsx'
+import Templates from './pages/Templates.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Toast from './components/Toast.jsx'
 import './styles/globals.css'
@@ -40,6 +41,7 @@ const PAGE_META = {
   edit:      { title:'Edit Wedding',    sub:'Update wedding details, card copy and design' },
   venues:    { title:'Venues & Directions', sub:'Manage venue locations and guest directions' },
   settings:  { title:'Settings',        sub:'Configure your account and integrations' },
+  templates: { title:'Invitation Templates', sub:'Choose a built-in style or upload your own' },
 }
 
 export default function App() {
@@ -368,6 +370,17 @@ export default function App() {
                 updateConfig({ venues: v })
                 localStorage.setItem(`wiq_venues_${config.id}`, JSON.stringify(v))
               }}
+            />
+          )}
+
+          {page === 'templates' && (
+            <Templates
+              config={config}
+              design={design}
+              onUpdateConfig={updateConfig}
+              onUpdateDesign={(d) => patchDesign(d)}
+              toast={showToast}
+              onNavigate={(p) => { setPage(p); setSidebarOpen(false) }}
             />
           )}
         </div>
