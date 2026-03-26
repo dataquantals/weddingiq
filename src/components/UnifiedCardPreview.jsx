@@ -64,14 +64,18 @@ export default function UnifiedCardPreview({
     const token = guest?.qr_token
     if (!token) { setQrDataUrl(null); return }
     const base = window.location.origin
-    // Use theme colours so the QR matches the card brand palette
+    // Use theme text colour for the dark blocks, but ALWAYS force a solid hex for the light background 
+    // (themeObj.bg is often a linear-gradient, which crashes the QR generator)
     const darkCol  = themeObj.txt || '#2D1540'
-    const lightCol = themeObj.bg  || '#FFFFFF'
+    const lightCol = '#FFFFFF'
     QRCode.toDataURL(`${base}/?invite=${token}`, {
       width: 120, margin: 1,
       color: { dark: darkCol, light: lightCol }
-    }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
-  }, [guest?.qr_token, themeObj.txt, themeObj.bg])
+    }).then(setQrDataUrl).catch((err) => {
+      console.error('QR Gen Failed:', err)
+      setQrDataUrl(null)
+    })
+  }, [guest?.qr_token, themeObj.txt])
 
   // Venue addresses
   const ceremonyAddr  = venues?.ceremony?.address
@@ -307,17 +311,36 @@ export default function UnifiedCardPreview({
             overflow: 'hidden',
           }}>
 
-            {/* QR Code block */}
+            {/* QR Code block with Guest Details */}
             {qrDataUrl && (
-              <div style={{ padding: '12px 18px', textAlign: 'center', flexShrink: 0 }}>
-                <img
-                  src={qrDataUrl}
-                  alt="Gate QR Code"
-                  style={{ width: 80, height: 80, display: 'block', borderRadius: 6, border: `2px solid ${themeObj.acc}`, background: '#fff' }}
-                />
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.7)', marginTop: 5, fontFamily: 'var(--sans)', letterSpacing: '0.07em', textTransform: 'uppercase', fontWeight: 600 }}>
-                  🚪 Gate Check-In
+              <div style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+                {/* QR Image */}
+                <div style={{ textAlign: 'center' }}>
+                  <img
+                    src={qrDataUrl}
+                    alt="Gate QR Code"
+                    style={{ width: 80, height: 80, display: 'block', borderRadius: 6, border: `2px solid ${themeObj.acc}`, background: '#fff' }}
+                  />
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,.7)', marginTop: 5, fontFamily: 'var(--sans)', letterSpacing: '0.07em', textTransform: 'uppercase', fontWeight: 600 }}>
+                    🚪 Gate Pass
+                  </div>
                 </div>
+                
+                {/* Invitee Details */}
+                {hasRealGuest && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 100 }}>
+                    <div style={{ fontSize: 13, color: '#fff', fontFamily: 'var(--serif)', fontWeight: 600 }}>
+                      {displayGuest}
+                    </div>
+                    {(guest?.table_number || guest?.plus_ones > 0) && (
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: 'var(--sans)' }}>
+                        {guest?.table_number ? `Table ${guest.table_number}` : ''}
+                        {guest?.table_number && guest?.plus_ones > 0 ? ' · ' : ''}
+                        {guest?.plus_ones > 0 ? `+${guest.plus_ones}` : ''}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
