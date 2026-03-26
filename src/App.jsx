@@ -181,9 +181,16 @@ export default function App() {
 
   // Show project selection if user has projects but none selected and not creating a new one
   if (status === 'authenticated' && projects && projects.length > 0 && !config && !creatingNew) {
-    // Redirect to the static user home page instead of React ProjectSelect (Image 2 -> Image 1)
-    window.location.href = '/user-home.html'
-    return null
+    return (
+      <>
+        <ProjectSelect
+          projects={projects}
+          onSelect={selectProject}
+          onCreate={() => setCreatingNew(true)}
+        />
+        {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+      </>
+    )
   }
 
   // First time user setup (no projects exist) OR creating a new project
