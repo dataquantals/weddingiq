@@ -181,7 +181,7 @@ export default function App() {
 
   // Show project selection if user has projects but none selected and not creating a new one
   if (status === 'authenticated' && projects && projects.length > 0 && !config && !creatingNew) {
-    window.location.href = '/user-home.html'
+    window.location.href = '/user-home'
     return null
   }
 
@@ -245,7 +245,7 @@ export default function App() {
         onGate={() => { setGate(true); setSidebarOpen(false); }}
         user={user}
         onSignOut={signOut}
-        onHome={projects.length > 1 ? () => { clearSelection(); setSidebarOpen(false); } : null}
+        onHome={projects.length > 1 ? () => { window.location.href = '/user-home'; } : null}
         isOpen={sidebarOpen}
       />
       

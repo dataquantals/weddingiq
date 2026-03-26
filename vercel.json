@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/user-home", "destination": "/user-home.html" },
     { "source": "/user-home.html", "destination": "/user-home.html" },
     { "source": "/weddingiq-home.html", "destination": "/weddingiq-home.html" },
     { "source": "/gate-scanner.html", "destination": "/gate-scanner.html" },

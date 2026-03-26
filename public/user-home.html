@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WeddingIQ - Your Projects</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --gold: #C9A84C;
+      --gold-l: #E8D5A3;
+      --plum: #1E0F2E;
+      --plum-m: #2D1A45;
+      --ink: #F5EDD8;
+      --muted: rgba(245,237,216,.55);
+      --serif: 'Cormorant Garamond', serif;
+      --sans: 'DM Sans', sans-serif;
+      --ok: #2D7A4F;
+      --err: #C85454;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--plum);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.6;
+    }
+
+    /* Top bar */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 32px;
+      background: rgba(30,15,46,.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(201,168,76,.12);
+    }
+    .logo-link {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; color: inherit; cursor: pointer;
+    }
+    .logo-icon {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-l));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon svg, .logo-icon img { width: 100%; height: 100%; object-fit: contain; }
+    .logo-text {
+      font-family: var(--serif);
+      font-size: 20px; font-weight: 600;
+      color: var(--gold-l);
+      letter-spacing: .04em;
+    }
+    .topbar-right {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold), var(--gold-l));
+      color: #1A0E08;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+    }
+    .user-name { font-size: 14px; color: var(--ink); }
+    .btn-signout {
+      padding: 8px 18px; border-radius: 8px;
+      border: 1px solid rgba(201,168,76,.3);
+      background: transparent;
+      color: var(--gold-l); font-size: 13px; font-weight: 500;
+      cursor: pointer; font-family: var(--sans);
+      transition: all .2s;
+    }
+    .btn-signout:hover {
+      background: rgba(201,168,76,.1);
+      border-color: var(--gold);
+    }
+
+    /* Main */
+    .main { position: relative; z-index: 1; padding: 48px 32px 80px; max-width: 1200px; margin: 0 auto; }
+    .greeting { margin-bottom: 32px; }
+    .greeting h1 {
+      font-family: var(--serif);
+      font-size: 32px; font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .greeting p { font-size: 15px; color: var(--muted); }
+
+    /* Grid */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .project-card {
+      background: rgba(45,26,69,.5);
+      border: 1px solid rgba(201,168,76,.12);
+      border-radius: 16px;
+      padding: 0;
+      cursor: pointer;
+      transition: all .3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .project-card:hover {
+      border-color: rgba(201,168,76,.3);
+      transform: translateY(-2px);
+    }
+    .card-accent {
+      height: 4px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-l));
+    }
+    .card-accent.g2 { background: linear-gradient(90deg, #7A9E5C, #9EC67A); }
+    .card-accent.g3 { background: linear-gradient(90deg, #D4607A, #E89AA8); }
+    .card-accent.g4 { background: linear-gradient(90deg, #2A5FC8, #5A8FE8); }
+    .card-accent.g5 { background: linear-gradient(90deg, #C8541C, #E88050); }
+    .card-body { padding: 20px; }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .status-badge {
+      font-size: 11px; font-weight: 500;
+      padding: 4px 10px; border-radius: 12px;
+      background: rgba(201,168,76,.15);
+      color: var(--gold-l);
+    }
+    .status-badge.today { background: rgba(45,122,79,.25); color: #7FFFA9; }
+    .status-badge.completed { background: rgba(200,84,84,.2); color: #E8A0A0; }
+    .card-couple {
+      font-family: var(--serif);
+      font-size: 22px; font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .card-meta { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.4; }
+    .card-stats {
+      display: flex; gap: 16px;
+      font-size: 12px; color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .card-stats span { font-weight: 500; color: var(--ink); }
+    .card-actions {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .card-actions button, .card-actions a {
+      flex: 1;
+      min-width: 120px;
+      padding: 10px 16px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      font-family: var(--sans);
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      border: none;
+      transition: all .2s;
+    }
+    .btn-launch {
+      background: var(--gold);
+      color: #1A0E08;
+    }
+    .btn-launch:hover { background: var(--gold-l); }
+    .btn-gate {
+      background: transparent;
+      border: 1px solid rgba(201,168,76,.3);
+      color: var(--gold-l);
+    }
+    .btn-gate:hover { background: rgba(201,168,76,.08); }
+    .card-menu-btn {
+      position: absolute; top: 16px; right: 16px;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,.2);
+      color: var(--ink);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; line-height: 1;
+      z-index: 2;
+    }
+    .card-menu-btn:hover { background: rgba(0,0,0,.35); }
+    .context-menu {
+      position: absolute; top: 48px; right: 16px;
+      background: var(--plum-m);
+      border: 1px solid rgba(201,168,76,.2);
+      border-radius: 8px;
+      padding: 8px;
+      min-width: 160px;
+      z-index: 10;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    }
+    .context-menu button {
+      display: block; width: 100%;
+      padding: 10px 14px;
+      background: none; border: none;
+      color: var(--ink);
+      font-size: 13px;
+      font-family: var(--sans);
+      text-align: left;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    .context-menu button:hover { background: rgba(201,168,76,.1); }
+
+    /* New project card */
+    .new-project-card {
+      min-height: 280px;
+      border: 2px dashed rgba(201,168,76,.3);
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .new-project-card:hover {
+      border-color: var(--gold);
+      background: rgba(201,168,76,.05);
+    }
+    .new-project-card .plus { font-size: 48px; color: var(--gold); line-height: 1; }
+    .new-project-card span { font-size: 15px; color: var(--muted); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 80px 24px;
+    }
+    .empty-state h2 {
+      font-family: var(--serif);
+      font-size: 28px;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+    .empty-state p { font-size: 15px; color: var(--muted); margin-bottom: 24px; }
+    .empty-state .btn-primary {
+      display: inline-flex;
+      padding: 14px 28px;
+      border-radius: 10px;
+      background: var(--gold);
+      color: #1A0E08;
+      font-size: 15px; font-weight: 600;
+      font-family: var(--sans);
+      border: none;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .empty-state .btn-primary:hover { background: var(--gold-l); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,.6);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-overlay[data-hidden="true"] { display: none; }
+    .modal {
+      background: var(--plum-m);
+      border: 1px solid rgba(201,168,76,.2);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      font-family: var(--serif);
+      font-size: 24px;
+      color: var(--ink);
+      margin-bottom: 24px;
+    }
+    .modal .fg {
+      margin-bottom: 16px;
+    }
+    .modal .fg label {
+      display: block;
+      font-size: 13px; font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .modal .fg input, .modal .fg textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(201,168,76,.2);
+      background: rgba(30,15,46,.5);
+      color: var(--ink);
+      font-size: 14px;
+      font-family: var(--sans);
+    }
+    .modal .fg textarea { min-height: 80px; resize: vertical; }
+
+    .map-search-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 8px; }
+    .map-btn { padding: 11px 16px; border-radius: 8px; border: 1px solid rgba(201,168,76,.3); background: rgba(201,168,76,.1); color: var(--gold-l); font-family: var(--sans); cursor: pointer; }
+    .map-container { width: 100%; height: 220px; border-radius: 8px; border: 1px solid rgba(201,168,76,.2); background: #000; overflow: hidden; }
+
+    .autocomplete-dropdown {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--plum-m); border: 1px solid rgba(201,168,76,.3);
+      border-radius: 8px; max-height: 200px; overflow-y: auto;
+      z-index: 2000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .autocomplete-dropdown.show { display: block; }
+    .ac-item {
+      padding: 10px 14px; font-size: 13px; color: var(--ink); cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:hover { background: rgba(201,168,76,.1); }
+
+    .modal .error { font-size: 12px; color: var(--err); margin-top: 6px; }
+    .modal-actions {
+      display: flex; gap: 12px; margin-top: 24px;
+    }
+    .modal-actions button {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px; font-weight: 500;
+      font-family: var(--sans);
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+    }
+    .modal-actions .btn-cancel {
+      background: transparent;
+      border: 1px solid rgba(201,168,76,.3);
+      color: var(--gold-l);
+    }
+    .modal-actions .btn-save {
+      background: var(--gold);
+      color: #1A0E08;
+    }
+    .modal-actions .btn-save:hover { background: var(--gold-l); }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+      animation: toastIn .3s ease;
+    }
+    .toast.ok { background: var(--ok); color: #fff; }
+    .toast.err { background: var(--err); color: #fff; }
+    .toast.info { background: var(--plum-m); color: var(--ink); border: 1px solid rgba(201,168,76,.3); }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .loading { text-align: center; padding: 80px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="loading">Loading...</div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPA_URL = 'https://jzoaodxbicxknchgylrg.supabase.co';
+    const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6b2FvZHhiaWN4a25jaGd5bHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MzQ2ODksImV4cCI6MjA4OTQxMDY4OX0.bmvzcrlqQVRfpkYmenraK2enTMZAs5DCkBX5lUoy9BU';
+
+    const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+    function baseUrl() {
+      return window.location.origin;
+    }
+    function redirectTo(path) {
+      window.location.href = window.location.origin + '/' + path;
+    }
+
+    const ACCENT_GRADIENTS = ['', 'g2', 'g3', 'g4', 'g5'];
+
+    function getGreeting() {
+      const h = new Date().getHours();
+      if (h < 12) return 'Good morning';
+      if (h < 17) return 'Good afternoon';
+      return 'Good evening';
+    }
+
+    function getStatus(dateStr) {
+      if (!dateStr) return { cls: '', text: 'Upcoming' };
+      const d = new Date(dateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      d.setHours(0, 0, 0, 0);
+      const diff = (d - today) / (1000 * 60 * 60 * 24);
+      if (diff === 0) return { cls: 'today', text: '🎉 Today!' };
+      if (diff < 0) return { cls: 'completed', text: 'Completed' };
+      return { cls: '', text: 'Upcoming' };
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        return new Date(dateStr).toLocaleDateString('en-US', {
+          weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+        });
+      }
+      catch { return dateStr; }
+    }
+
+    function getInitials(name) {
+      if (!name) return '?';
+      return name.split(/\s+/).map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+
+    function getFirstName(user) {
+      const full = user?.user_metadata?.full_name || localStorage.getItem('wiq_user_name') || '';
+      if (full) return full.split(' ')[0] || full;
+      const email = user?.email || '';
+      return email.split('@')[0] || 'there';
+    }
+
+    function toast(msg, type = 'info') {
+      const c = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = 'toast ' + type;
+      el.textContent = msg;
+      c.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function saveProjectConfig(project) {
+      // The React app (useConfig.js) looks for 'wedding_config' containing the project object
+      localStorage.setItem('wedding_config', JSON.stringify(project));
+      
+      // Keep wiq_cfg purely for backward compatibility if any older scripts rely on it
+      const cfg = {
+        bride: project.bride,
+        groom: project.groom,
+        date: project.date,
+        venue: project.venue || '',
+        address: project.address || '',
+        hosts: project.hosts || '',
+        supaUrl: SUPA_URL,
+        supaKey: SUPA_KEY,
+        activeProjectId: project.id
+      };
+      localStorage.setItem('wiq_cfg', JSON.stringify(cfg));
+    }
+
+    function render(context) {
+      const { user, projects } = context;
+      const storageKey = 'wiq_projects_' + user.id;
+      let projectList = projects;
+
+      const firstName = getFirstName(user);
+      const fullName = user?.user_metadata?.full_name || user?.email || 'User';
+      if (user?.user_metadata?.full_name) {
+        localStorage.setItem('wiq_user_name', user.user_metadata.full_name);
+      }
+
+      const html = `
+        <nav class="topbar">
+          <a class="logo-link" href="${baseUrl()}/weddingiq-home.html">
+            <img src="/Assets/wedding%20logo.png" onerror="this.src='/logo.png'" alt="Logo" style="height: 85px; width: auto; object-fit: contain;" />
+          </a>
+          <div class="topbar-right">
+            <div class="avatar">${getInitials(fullName)}</div>
+            <span class="user-name">${fullName.split('@')[0]}</span>
+            <button class="btn-signout" id="btnSignOut">Sign Out</button>
+          </div>
+        </nav>
+
+        <main class="main">
+          <div class="greeting" style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+              <h1>${getGreeting()}, ${firstName}</h1>
+              <p>Here are your wedding projects. Click any card to open the dashboard.</p>
+            </div>
+            ${projectList.length > 0 ? `<button class="btn-signout" id="btnWipeAll" style="border-color: var(--err); color: var(--err);">Wipe All Projects</button>` : ''}
+          </div>
+
+          ${projectList.length === 0 ? `
+            <div class="empty-state">
+              <h2>No projects yet</h2>
+              <p>Create your first wedding project to get started.</p>
+              <button class="btn-primary" id="btnCreateFirst">Create your first project</button>
+            </div>
+          ` : `
+            <div class="projects-grid">
+              ${projectList.map((p, i) => {
+                const status = getStatus(p.date);
+                const accent = ACCENT_GRADIENTS[i % 5];
+                const guestCount = p.guestCount ?? 0;
+                const checkedIn = p.checkedIn ?? 0;
+                const pct = guestCount > 0 ? Math.round((checkedIn / guestCount) * 100) : 0;
+                return `
+                  <div class="project-card" data-project-id="${p.id}" data-index="${i}">
+                    <div class="card-accent ${accent}"></div>
+                    <button class="card-menu-btn" data-index="${i}" onclick="event.stopPropagation()">⋮</button>
+                    <div class="card-body">
+                      <div class="card-header">
+                        <span class="status-badge ${status.cls}">${status.text}</span>
+                      </div>
+                      <div class="card-couple">${(p.bride || 'Bride')} & ${(p.groom || 'Groom')}</div>
+                      <div class="card-meta">
+                        ${p.date ? formatDate(p.date) : ''}
+                        ${p.venue ? ' · ' + p.venue : ''}
+                      </div>
+                      <div class="card-stats">
+                        <span>${guestCount}</span> Guests ·
+                        <span>${checkedIn}</span> Checked In ·
+                        <span>${pct}%</span> Attendance
+                      </div>
+                      <div class="card-actions" onclick="event.stopPropagation()">
+                        <button class="btn-launch" data-index="${i}">Launch WeddingIQ</button>
+                        <a class="btn-gate" href="#" data-index="${i}" data-newtab="1">Gate Scanner</a>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+              <div class="project-card new-project-card" id="newProjectCard">
+                <span class="plus">+</span>
+                <span>New wedding project</span>
+              </div>
+            </div>
+          `}
+        </main>
+      `;
+
+      document.getElementById('app').innerHTML = html;
+
+      // Sign out
+      document.getElementById('btnSignOut')?.addEventListener('click', async () => {
+        await sb.auth.signOut();
+        redirectTo('weddingiq-home.html');
+      });
+
+      // Wipe All Projects
+      document.getElementById('btnWipeAll')?.addEventListener('click', async () => {
+        if (!confirm('Are you absolutely sure you want to delete ALL your projects AND all guests? This cannot be undone.')) return;
+        
+        try {
+          const { data: userData } = await sb.auth.getUser();
+          if (userData?.user?.id) {
+            // Delete all guests first so they don't become orphans
+            await sb.from('guests').delete().eq('user_id', userData.user.id);
+          }
+
+          // Delete all projects the user owns
+          for (let p of projectList) {
+            await sb.from('weddings').delete().eq('id', p.id);
+          }
+          
+          // Clear local storage completely (fresh slate)
+          localStorage.clear();
+          toast('All projects & guests wiped!', 'ok');
+          setTimeout(() => window.location.reload(), 1000);
+        } catch (e) {
+          toast('Error wiping projects', 'err');
+        }
+      });
+
+      // Create first (empty state)
+      document.getElementById('btnCreateFirst')?.addEventListener('click', () => openModal());
+
+      // New project card
+      document.getElementById('newProjectCard')?.addEventListener('click', () => openModal());
+
+      // Card click -> WeddingIQ-complete
+      document.querySelectorAll('.project-card:not(.new-project-card)').forEach(card => {
+        const idx = parseInt(card.dataset.index, 10);
+        const p = projectList[idx];
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.card-menu-btn') || e.target.closest('.card-actions') || e.target.closest('.context-menu')) return;
+          saveProjectConfig(p);
+          const slug = `${p.bride || 'bride'}and${p.groom || 'groom'}`.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          redirectTo(slug);
+        });
+      });
+
+      // Launch WeddingIQ
+      document.querySelectorAll('.btn-launch').forEach(btn => {
+        const idx = parseInt(btn.dataset.index, 10);
+        const p = projectList[idx];
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          saveProjectConfig(p);
+          const slug = `${p.bride || 'bride'}and${p.groom || 'groom'}`.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          redirectTo(slug);
+        });
+      });
+
+      // Gate Scanner (new tab)
+      document.querySelectorAll('.btn-gate[data-newtab="1"]').forEach(link => {
+        const idx = parseInt(link.dataset.index, 10);
+        const p = projectList[idx];
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          saveProjectConfig(p);
+          window.open(baseUrl() + '/gate-scanner.html', '_blank');
+        });
+      });
+
+      // Menu button -> context menu
+      document.querySelectorAll('.card-menu-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = parseInt(btn.dataset.index, 10);
+          const p = projectList[idx];
+          document.querySelectorAll('.context-menu').forEach(m => m.remove());
+          const menu = document.createElement('div');
+          menu.className = 'context-menu';
+          menu.innerHTML = `
+            <button data-action="edit" data-index="${idx}">Edit details</button>
+            <button data-action="delete" data-index="${idx}">Delete project</button>
+          `;
+          btn.parentElement.appendChild(menu);
+
+          menu.querySelector('[data-action="edit"]').addEventListener('click', () => {
+            menu.remove();
+            openModal(p, idx);
+          });
+          menu.querySelector('[data-action="delete"]').addEventListener('click', async () => {
+            menu.remove();
+            if (!confirm(`Delete '${(p.bride || 'Bride')} & ${(p.groom || 'Groom')}'? This cannot be undone.`)) return;
+            const { error } = await sb.from('weddings').delete().eq('id', p.id);
+            if (error) { toast('Error deleting project', 'err'); return; }
+            toast('Project deleted', 'ok');
+            await init();
+          });
+
+          const closeMenu = () => { menu.remove(); document.removeEventListener('click', closeMenu); };
+          setTimeout(() => document.addEventListener('click', closeMenu), 0);
+        });
+      });
+    }
+
+    function openModal(editProject = null, editIndex = -1) {
+      const isEdit = !!editProject;
+      let modal = document.getElementById('projectModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'projectModal';
+        modal.className = 'modal-overlay';
+        modal.dataset.hidden = 'true';
+        modal.innerHTML = `
+          <div class="modal" onclick="event.stopPropagation()">
+            <h3 id="modalTitle">New wedding project</h3>
+            <form id="projectForm">
+              <div class="fg">
+                <label>Bride's Name *</label>
+                <input type="text" name="bride" required />
+                <div class="error" id="errBride"></div>
+              </div>
+              <div class="fg">
+                <label>Groom's Name *</label>
+                <input type="text" name="groom" required />
+                <div class="error" id="errGroom"></div>
+              </div>
+              <div class="fg">
+                <label>Wedding Date *</label>
+                <input type="date" name="date" required />
+                <div class="error" id="errDate"></div>
+              </div>
+              <div class="fg">
+                <label>Venue Name</label>
+                <input type="text" name="venue" />
+              </div>
+              <div class="fg">
+                <label>Hosts/Family</label>
+                <input type="text" name="hosts" placeholder="e.g. Mr & Mrs Smith" />
+              </div>
+              <div class="fg">
+                <label>Venue Address</label>
+                <textarea name="address" id="modalAddress"></textarea>
+                
+                <label style="margin-top:12px; display:block;">Find on OpenStreetMap</label>
+                <div class="map-search-row" style="position: relative;">
+                  <input type="text" id="mapSearchInput" placeholder="Search venue, city..." autocomplete="off" />
+                  <button type="button" class="map-btn" id="mapSearchBtn">Search</button>
+                  <div id="mapAutocomplete" class="autocomplete-dropdown"></div>
+                </div>
+                <div style="font-size:11px; color:rgba(255,255,255,0.4); margin-bottom:8px;">Drag pin to exact location.</div>
+                <div id="projectMap" class="map-container"></div>
+              </div>
+              <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="modalCancel">Cancel</button>
+                <button type="submit" class="btn-save" id="modalSave">${isEdit ? 'Save Changes' : 'Create Project'}</button>
+              </div>
+            </form>
+          </div>
+        `;
+        modal.addEventListener('click', () => { modal.dataset.hidden = 'true'; });
+        document.body.appendChild(modal);
+      }
+
+      document.getElementById('modalTitle').textContent = isEdit ? 'Edit project' : 'New wedding project';
+      document.getElementById('modalSave').textContent = isEdit ? 'Save Changes' : 'Create Project';
+
+      const form = document.getElementById('projectForm');
+      form.reset();
+      ['errBride','errGroom','errDate'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '';
+      });
+
+      if (editProject) {
+        form.bride.value = editProject.bride || '';
+        form.groom.value = editProject.groom || '';
+        form.date.value = editProject.date ? editProject.date.slice(0, 10) : '';
+        form.venue.value = editProject.venue || '';
+        form.hosts.value = editProject.hosts || '';
+        document.getElementById('modalAddress').value = editProject.address || '';
+        window._npLat = editProject.lat || -15.4167;
+        window._npLng = editProject.lng || 28.2833;
+      } else {
+        window._npLat = -15.4167;
+        window._npLng = 28.2833;
+      }
+
+      modal.dataset.hidden = 'false';
+
+      setTimeout(() => {
+        if (!window._mMap) {
+          window._mMap = L.map('projectMap').setView([window._npLat, window._npLng], 12);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(window._mMap);
+          window._mMarker = L.marker([window._npLat, window._npLng], { draggable: true }).addTo(window._mMap);
+          
+          window._mMarker.on('dragend', async () => {
+            const ll = window._mMarker.getLatLng();
+            window._npLat = ll.lat; window._npLng = ll.lng;
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${ll.lat}&lon=${ll.lng}`);
+              const data = await res.json();
+              if (data?.display_name) document.getElementById('modalAddress').value = data.display_name;
+            } catch(e) {}
+          });
+          window._mMap.on('click', async (e) => {
+            window._mMarker.setLatLng(e.latlng);
+            window._npLat = e.latlng.lat; window._npLng = e.latlng.lng;
+          });
+
+          document.getElementById('mapSearchBtn').onclick = async () => {
+            const q = document.getElementById('mapSearchInput').value.trim();
+            if (!q) return;
+            try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(q)}`);
+              const data = await res.json();
+              if (data?.length) {
+                const lat = parseFloat(data[0].lat); const lng = parseFloat(data[0].lon);
+                window._npLat = lat; window._npLng = lng;
+                const ll = L.latLng(lat, lng);
+                window._mMarker.setLatLng(ll);
+                window._mMap.setView(ll, 14);
+                if (data[0].display_name) document.getElementById('modalAddress').value = data[0].display_name;
+              } else {
+                toast('No location found for that search', 'err');
+              }
+            } catch(e) {
+              toast('No location found for that search', 'err');
+            }
+          };
+
+          // Autocomplete logic
+          const searchInput = document.getElementById('mapSearchInput');
+          const acDrop = document.getElementById('mapAutocomplete');
+          let acTimer = null;
+
+          searchInput.addEventListener('input', (e) => {
+            const q = e.target.value.trim();
+            if (q.length < 3) {
+              acDrop.classList.remove('show');
+              return;
+            }
+            clearTimeout(acTimer);
+            acTimer = setTimeout(async () => {
+              try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&q=${encodeURIComponent(q)}`);
+                const data = await res.json();
+                if (data?.length) {
+                  acDrop.innerHTML = data.map(item => `
+                    <div class="ac-item" data-lat="${item.lat}" data-lng="${item.lon}" data-name="${item.display_name.replace(/"/g, '&quot;')}">
+                      ${item.display_name}
+                    </div>
+                  `).join('');
+                  acDrop.classList.add('show');
+                } else {
+                  acDrop.classList.remove('show');
+                }
+              } catch(err) {
+                acDrop.classList.remove('show');
+              }
+            }, 400); // 400ms debounce
+          });
+
+          // Handle click on dropdown items
+          acDrop.addEventListener('click', (e) => {
+            const item = e.target.closest('.ac-item');
+            if (!item) return;
+            const lat = parseFloat(item.dataset.lat);
+            const lng = parseFloat(item.dataset.lng);
+            const name = item.dataset.name;
+            
+            window._npLat = lat; window._npLng = lng;
+            const ll = L.latLng(lat, lng);
+            window._mMarker.setLatLng(ll);
+            window._mMap.setView(ll, 14);
+            document.getElementById('modalAddress').value = name;
+            searchInput.value = name;
+            acDrop.classList.remove('show');
+          });
+
+          // Close dropdown when clicking outside
+          document.addEventListener('click', (e) => {
+            if (!e.target.closest('.map-search-row')) {
+              acDrop.classList.remove('show');
+            }
+          });
+
+        } else {
+          window._mMarker.setLatLng([window._npLat, window._npLng]);
+          window._mMap.setView([window._npLat, window._npLng], 12);
+          window._mMap.invalidateSize();
+        }
+      }, 100);
+
+      document.getElementById('modalCancel').onclick = () => { modal.dataset.hidden = 'true'; };
+
+      form.onsubmit = async (e) => {
+        e.preventDefault();
+        const bride = form.bride.value.trim();
+        const groom = form.groom.value.trim();
+        const date  = form.date.value;
+        let hasErr = false;
+        if (!bride) { document.getElementById('errBride').textContent = 'Required'; hasErr = true; }
+        if (!groom) { document.getElementById('errGroom').textContent = 'Required'; hasErr = true; }
+        if (!date)  { document.getElementById('errDate').textContent  = 'Required'; hasErr = true; }
+        if (hasErr) return;
+
+        const saveBtn = document.getElementById('modalSave');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
+
+        const payload = {
+          ...(isEdit && editProject.id ? { id: editProject.id } : {}),
+          user_id: window.__currentUser.id,
+          bride, groom, date,
+          venue:   form.venue.value.trim()  || '',
+          hosts:   form.hosts.value.trim()  || '',
+          address: document.getElementById('modalAddress').value.trim() || '',
+          lat: window._npLat,
+          lng: window._npLng,
+        };
+
+        const { error } = await sb.from('weddings').upsert(payload, { onConflict: 'id' });
+        saveBtn.disabled = false;
+        saveBtn.textContent = isEdit ? 'Save Changes' : 'Create Project';
+
+        if (error) { toast('Error saving project: ' + error.message, 'err'); return; }
+
+        modal.dataset.hidden = 'true';
+        toast(isEdit ? 'Project updated' : 'Project created', 'ok');
+        await init();
+      };
+    }
+
+    async function init() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        redirectTo('weddingiq-home.html');
+        return;
+      }
+
+      const user = session.user;
+      window.__currentUser = user;
+
+      // Load projects and guest counts from Supabase
+      const [{ data: projectRows }, { data: guestRows }] = await Promise.all([
+        sb.from('weddings').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        sb.from('guests').select('id, wedding_id, checked_in').eq('user_id', user.id)
+      ]);
+
+      const projects = (projectRows || []).map(p => ({
+        ...p,
+        guestCount: (guestRows || []).filter(g => g.wedding_id === p.id).length,
+        checkedIn:  (guestRows || []).filter(g => g.wedding_id === p.id && g.checked_in).length,
+      }));
+
+      render({ user, projects });
+    }
+
+    init();
+  </script>
+</body>
+</html>
