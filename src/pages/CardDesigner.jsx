@@ -442,7 +442,7 @@ export default function CardDesigner({
   selectedBorder, setSelectedBorder,
   borderCategory, setBorderCategory,
   borderScale, setBorderScale,
-  saveStatus, saveCanvas, canvasLoaded,
+  saveStatus, saveCanvas, canvasLoaded, clearCanvas,
 }) {
   const [activePanel, setActivePanel] = useState('theme')
   const [imgTab,      setImgTab]      = useState('floral')
@@ -490,7 +490,42 @@ export default function CardDesigner({
     }
   }, [user, saveCanvas, toast])
 
+  const handleClearCanvas = useCallback(async () => {
+    if (!confirm('Clear this canvas to a blank state? This will completely delete the saved design.')) return
+    try {
+      await clearCanvas()
+      toast('Canvas is now completely blank.', 'ok')
+      setEditorMode('canvas') // Jump to canvas mode so they see the empty slate
+    } catch (e) {
+      toast('Clear failed: ' + e.message, 'err')
+    }
+  }, [clearCanvas, toast])
+
   const activeTheme = customTheme || findAnyTheme(theme, THEMES)
+  const bottomBarBg = design?.bottom_bar_bg || '#0D0A14'
+
+  const extractFirstHexFromBg = (bgStr) => {
+    const m = String(bgStr || '').match(/#[0-9A-Fa-f]{6}/)
+    return m ? m[0] : null
+  }
+
+  const brandPalette = (() => {
+    const t = activeTheme || THEMES[0]
+    const bgHex = extractFirstHexFromBg(t?.bg) || '#0D0A14'
+    const candidates = [
+      bgHex,
+      t?.acc || '#C9A84C',
+      t?.sub || '#6B4580',
+      t?.txt || '#2D1540',
+      '#0D0A14',
+      '#000000',
+    ]
+    // Ensure the currently selected color is always visible in the palette
+    if (bottomBarBg && !candidates.includes(bottomBarBg)) candidates.unshift(bottomBarBg)
+
+    // Deduplicate while preserving order
+    return candidates.filter((c, i) => c && candidates.indexOf(c) === i).slice(0, 7)
+  })()
 
   const ALL_THEMES = [...THEMES, ...Object.values(GENERATED_THEMES).flat()]
   const displayedThemes = themeCategory === 'all' 
@@ -547,6 +582,16 @@ Respond ONLY with the JSON. No markdown.`
            : saveStatus === 'error'  ? '✕ Error'
            : '💾 Save Design'}
           </button>
+          {clearCanvas && (
+            <button
+              className="btn btn-o btn-sm"
+              onClick={handleClearCanvas}
+              title="Reset canvas for this project"
+              style={{ color:'var(--err)', borderColor:'rgba(196,56,56,.3)' }}
+            >
+              🗑 Reset Canvas
+            </button>
+          )}
           <button className="btn btn-g" onClick={generate} disabled={generating}>
             {generating ? <><span className="spin" /> Designing...</> : '✨ AI Generate'}
           </button>
@@ -676,6 +721,63 @@ Respond ONLY with the JSON. No markdown.`
                   ✨ Theme "{customTheme.name}" active
                 </div>
               )}
+
+              {/* Bottom QR + Directions strip background */}
+              <div style={{ marginTop: 14, padding: 12, background: 'var(--cream-d)', border: '1px solid var(--border)', borderRadius: 12 }}>
+                <div className="set-title" style={{ marginBottom: 6 }}>🎛️ QR + Directions Strip</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, lineHeight: 1.6 }}>
+                  Match the background of the QR + “Venue Directions” strip with your brand palette.
+                </div>
+
+                <div style={{ display:'flex', gap: 12, alignItems:'flex-start', flexWrap:'wrap' }}>
+                  <div style={{ flex: '1 1 160px', minWidth: 160 }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--plum)', display: 'block', marginBottom: 8 }}>
+                      Color Picker
+                    </label>
+                    <div style={{ display:'flex', gap: 10, alignItems:'center' }}>
+                      <input
+                        type="color"
+                        value={bottomBarBg}
+                        onChange={(e) => patchDesign({ bottom_bar_bg: e.target.value })}
+                        style={{
+                          width: 52,
+                          height: 52,
+                          borderRadius: 10,
+                          border: '1px solid var(--border)',
+                          background: '#fff',
+                          cursor: 'pointer',
+                        }}
+                      />
+                      <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>
+                        {String(bottomBarBg || '').toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ flex: '1 1 220px', minWidth: 220 }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--plum)', display: 'block', marginBottom: 8 }}>
+                      Brand Palette
+                    </label>
+                    <div style={{ display:'flex', gap: 8, flexWrap:'wrap' }}>
+                      {brandPalette.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => patchDesign({ bottom_bar_bg: c })}
+                          title={c}
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 10,
+                            border: c === bottomBarBg ? '2px solid var(--plum)' : '1px solid var(--border)',
+                            cursor: 'pointer',
+                            background: c,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

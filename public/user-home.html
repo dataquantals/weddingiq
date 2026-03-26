@@ -889,28 +889,43 @@
     }
 
     async function init() {
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session) {
-        redirectTo('weddingiq-home.html');
-        return;
+      try {
+        const { data: { session }, error: authError } = await sb.auth.getSession();
+        if (authError) throw authError;
+        if (!session) {
+          redirectTo('weddingiq-home.html');
+          return;
+        }
+
+        const user = session.user;
+        window.__currentUser = user;
+
+        // Load projects and guest counts from Supabase
+        const [{ data: projectRows, error: projectError }, { data: guestRows, error: guestError }] = await Promise.all([
+          sb.from('weddings').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+          sb.from('guests').select('id, wedding_id, checked_in').eq('user_id', user.id)
+        ]);
+
+        if (projectError) throw projectError;
+        if (guestError) throw guestError;
+
+        const projects = (projectRows || []).map(p => ({
+          ...p,
+          guestCount: (guestRows || []).filter(g => g.wedding_id === p.id).length,
+          checkedIn:  (guestRows || []).filter(g => g.wedding_id === p.id && g.checked_in).length,
+        }));
+
+        render({ user, projects });
+      } catch (err) {
+        console.error('Failed to load projects:', err);
+        document.getElementById('app').innerHTML = `
+          <div class="empty-state">
+            <h2>Unable to load projects</h2>
+            <p>${err?.message || 'Please check your connection and try again.'}</p>
+            <button class="btn-primary" onclick="window.location.reload()">Try Again</button>
+          </div>
+        `;
       }
-
-      const user = session.user;
-      window.__currentUser = user;
-
-      // Load projects and guest counts from Supabase
-      const [{ data: projectRows }, { data: guestRows }] = await Promise.all([
-        sb.from('weddings').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        sb.from('guests').select('id, wedding_id, checked_in').eq('user_id', user.id)
-      ]);
-
-      const projects = (projectRows || []).map(p => ({
-        ...p,
-        guestCount: (guestRows || []).filter(g => g.wedding_id === p.id).length,
-        checkedIn:  (guestRows || []).filter(g => g.wedding_id === p.id && g.checked_in).length,
-      }));
-
-      render({ user, projects });
     }
 
     init();

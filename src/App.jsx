@@ -60,8 +60,8 @@ export default function App() {
   const { user, session, status, error, signUp, signIn, signOut, updateUserProfile } = useAuth()
   const { config, projects, loading: cfgLoading, saveConfig, updateConfig, selectProject, clearSelection } = useConfig(user)
   const { guests, loading: guestsLoading, addGuest, updateGuest, removeGuest, checkIn, setAiMessage, setPhotoUrl, importBulk, clearGuests } = useGuests(user, config?.id)
-  const { design, theme, bgImage, history, loading: designLoading, setTheme, setBgImage, patchDesign, undo, updateField } = useDesign(user)
-  const { canvasPages, setCanvasPages, selectedBorder, setSelectedBorder, borderCategory, setBorderCategory, borderScale, setBorderScale, saveStatus: canvasSaveStatus, saveCanvas, canvasLoaded } = useCanvasDesign(user, config)
+  const { design, theme, bgImage, history, loading: designLoading, setTheme, setBgImage, patchDesign, undo, updateField } = useDesign(user, config?.id)
+  const { canvasPages, setCanvasPages, selectedBorder, setSelectedBorder, borderCategory, setBorderCategory, borderScale, setBorderScale, saveStatus: canvasSaveStatus, saveCanvas, canvasLoaded, clearCanvas } = useCanvasDesign(user, config)
   const { guest: pGuest, wedding: pWedding, design: pDesign, canvasDesign: pCanvas, loading: pLoading } = usePublicInvite(urlInvite)
 
   const [page,        setPage]        = useState('dashboard')
@@ -94,6 +94,42 @@ export default function App() {
   }, [config?.id])
 
   const showToast = useCallback((msg, type = '') => setToast({ msg, type }), [])
+
+  const slugify = useCallback((s = '') => {
+    return String(s)
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '')
+      .trim()
+  }, [])
+
+  // Root-cause fix: custom project URLs like `/deborahandjames` must select a specific project.
+  // Without this, every custom path can end up using the same `config`, causing shared designer state.
+  useEffect(() => {
+    if (status !== 'authenticated') return
+    if (!projects || !projects.length) return
+
+    const path = location.pathname || '/'
+    if (path === '/' || path.toLowerCase() === '/home') return
+    if (path.toLowerCase().endsWith('.html')) return
+
+    const slug = path.replace(/^\//, '').toLowerCase()
+    if (!slug) return
+
+    const match =
+      projects.find(p => p?.id && String(p.id).toLowerCase() === slug) ||
+      projects.find(p => {
+        const bride = p?.bride || ''
+        const groom = p?.groom || ''
+        // deborahandjames, laikaandackim, etc.
+        const candidate = slugify(`${bride}and${groom}`)
+        return candidate && candidate === slug
+      })
+
+    if (match && config?.id !== match.id) {
+      selectProject(match)
+    }
+  }, [status, projects, location.pathname, slugify, selectProject, config?.id])
 
   async function handleAuth(mode, email, password, metadata = {}) {
     const ok = mode === 'signin' ? await signIn(email, password) : await signUp(email, password, metadata)
@@ -150,7 +186,45 @@ export default function App() {
     )
   }
 
-  // Show loading while checking auth or loading projects
+  // Show loading while checking auth or loading projects (with timeout fallback)
+  const [timedOut, setTimedOut] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (status === 'loading' || cfgLoading) {
+        setTimedOut(true)
+      }
+    }, 10000) // 10 second timeout
+    return () => clearTimeout(timer)
+  }, [status, cfgLoading])
+  
+  if (timedOut) {
+    return (
+      <div className="cfg-screen">
+        <div style={{ textAlign:'center', padding:'60px 20px' }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>⚠️</div>
+          <div className="cfg-title">Loading Error</div>
+          <div className="cfg-sub">Unable to load. Please refresh the page.</div>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ 
+              marginTop: 20, 
+              padding: '12px 24px', 
+              background: 'var(--plum)', 
+              color: 'var(--ink)', 
+              border: 'none', 
+              borderRadius: 8, 
+              cursor: 'pointer',
+              fontFamily: 'var(--sans)',
+              fontSize: 14
+            }}
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (status === 'loading' || cfgLoading) {
     return (
       <div className="cfg-screen">
@@ -307,6 +381,7 @@ export default function App() {
               saveStatus={canvasSaveStatus}
               saveCanvas={saveCanvas}
               canvasLoaded={canvasLoaded}
+              clearCanvas={clearCanvas}
             />
           )}
 

@@ -76,20 +76,60 @@ export async function upsertWedding(wedding) {
 }
 
 export async function loadDesign(userId, weddingId) {
-  let query = sb.from('designs').select('*')
   if (weddingId) {
-    query = query.eq('id', weddingId) // Fallback for multi-wedding projects
-  } else {
-    query = query.eq('user_id', userId)
+    // Root-cause fix: never fall back to legacy user-only row for project-specific loads.
+    // Falling back causes cross-project theme/background sharing.
+    const { data, error } = await sb.from('designs').select('*')
+      .eq('user_id', userId)
+      .eq('wedding_id', weddingId)
+      .maybeSingle()
+    if (error && error.code !== 'PGRST116') throw error
+    return data || null
   }
-  const { data, error } = await query.single()
+  // Legacy mode (no project context)
+  const { data, error } = await sb.from('designs').select('*')
+    .eq('user_id', userId)
+    .is('wedding_id', null)
+    .maybeSingle()
   if (error && error.code !== 'PGRST116') throw error
-  return data
+  return data || null
 }
 
-export async function upsertDesign(design) {
-  const { error } = await sb.from('designs').upsert(design, { onConflict: 'user_id' })
-  if (error) console.warn('upsert design:', error.message)
+export async function upsertDesign({ _row_id, user_id, wedding_id, ...fields }) {
+  if (wedding_id) {
+    // Root-cause fix: update strictly by (user_id,wedding_id), never by legacy _row_id.
+    // This prevents one project updating another project's design row.
+    const { data: byWedding } = await sb.from('designs')
+      .select('id')
+      .eq('user_id', user_id)
+      .eq('wedding_id', wedding_id)
+      .maybeSingle()
+
+    if (byWedding?.id) {
+      const { error } = await sb.from('designs')
+        .update({ user_id, wedding_id, ...fields })
+        .eq('id', byWedding.id)
+      if (error) console.warn('update design:', error.message)
+      return
+    }
+
+    // Insert project-scoped row.
+    const { error: insErr } = await sb.from('designs')
+      .insert({ user_id, wedding_id, ...fields })
+    if (!insErr) return
+
+    console.warn(
+      '[designs] insert failed (UNIQUE(user_id) still active — run migration 20240005):',
+      insErr.message
+    )
+    // Do NOT fall back to user_id upsert here; that would reintroduce cross-project sharing.
+    return
+  }
+
+  // Legacy fallback for non-project use only.
+  const { error } = await sb.from('designs')
+    .upsert({ user_id, wedding_id, ...fields }, { onConflict: 'user_id' })
+  if (error) console.warn('upsert design (legacy):', error.message)
 }
 
 export async function saveCanvasDesign({ userId, weddingId, canvasPages, selectedBorder, borderCategory, borderScale }) {
@@ -113,9 +153,18 @@ export async function loadCanvasDesign(userId, weddingId) {
   if (userId) query = query.eq('user_id', userId)
   if (weddingId) query = query.eq('wedding_id', weddingId)
   
-  const { data, error } = await query.single()
+  const { data, error } = await query.maybeSingle()
   if (error && error.code !== 'PGRST116') throw new Error(error.message)
   return data || null
+}
+
+export async function clearCanvasDesign(userId, weddingId) {
+  if (!userId || !weddingId) return
+  const { error } = await sb.from('card_canvas')
+    .delete()
+    .eq('user_id', userId)
+    .eq('wedding_id', weddingId)
+  if (error) console.warn('clear canvas:', error.message)
 }
 
 export async function loadPublicInviteData(qrToken) {

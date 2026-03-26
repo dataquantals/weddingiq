@@ -8,13 +8,21 @@ export function useAuth() {
 
   useEffect(() => {
     let mounted = true
-    sb.auth.getSession().then(({ data }) => {
-      if (!mounted) return
-      setSession(data?.session ?? null)
-      setStatus('authenticated')
-    })
+
+    sb.auth.getSession()
+      .then(({ data }) => {
+        if (!mounted) return
+        setSession(data?.session ?? null)
+        setStatus(data?.session ? 'authenticated' : 'unauthenticated')
+      })
+      .catch(() => {
+        if (!mounted) return
+        setSession(null)
+        setStatus('unauthenticated')
+      })
 
     const { data } = sb.auth.onAuthStateChange((_event, nextSession) => {
+      if (!mounted) return
       setSession(nextSession)
       setStatus(nextSession ? 'authenticated' : 'unauthenticated')
     })

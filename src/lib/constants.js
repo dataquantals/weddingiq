@@ -88,4 +88,7 @@ export const DEFAULT_DESIGN = {
   couple_intro:  'A love story written in the stars, celebrated with those they hold dearest.',
   personal_note: 'We are overjoyed to share this milestone with you and look forward to celebrating surrounded by the warmth of your presence.',
   footer_verse:  'Together is the most beautiful place to be',
+  // Background color for the QR + Venue Directions strip shown below the invite preview.
+  // Stored as a solid hex color so it can be edited with <input type="color" />.
+  bottom_bar_bg: '#0D0A14',
 }

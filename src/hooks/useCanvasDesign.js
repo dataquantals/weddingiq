@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { saveCanvasDesign, loadCanvasDesign } from '../lib/supabase.js'
+import { saveCanvasDesign, loadCanvasDesign, clearCanvasDesign } from '../lib/supabase.js'
 
 export function useCanvasDesign(user, config) {
   const [canvasPages,    setCanvasPages]    = useState([{ objects: [], background: 'transparent' }])
@@ -51,12 +51,20 @@ export function useCanvasDesign(user, config) {
     }
   }, [user?.id, weddingId, canvasPages, selectedBorder, borderCategory, borderScale])
 
+  const clearCanvas = useCallback(async () => {
+    await clearCanvasDesign(user?.id, weddingId)
+    setCanvasPages([{ objects: [], background: 'transparent' }])
+    setSelectedBorder(null)
+    setBorderCategory('geometric')
+    setBorderScale(1)
+  }, [user?.id, weddingId])
+
   return {
     canvasPages,    setCanvasPages,
     selectedBorder, setSelectedBorder,
     borderCategory, setBorderCategory,
     borderScale,    setBorderScale,
     saveStatus,     saveCanvas,
-    canvasLoaded,
+    canvasLoaded,   clearCanvas,
   }
 }

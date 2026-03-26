@@ -3,6 +3,37 @@ import Papa from 'papaparse'
 import { initials, badgeClass } from '../lib/helpers.js'
 import { uploadPhoto } from '../lib/supabase.js'
 
+/**
+ * Convert any Google Drive sharing/view/thumbnail URL into a direct-load image URL.
+ * Supports:
+ *   https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+ *   https://drive.google.com/open?id=FILE_ID
+ *   https://drive.google.com/uc?id=FILE_ID  (already direct but may need export param)
+ *   https://lh3.googleusercontent.com/d/FILE_ID  (thumbnail form)
+ * Non-Google URLs are returned unchanged.
+ */
+function normalizeImageUrl(url) {
+  if (!url) return url
+  try {
+    const u = new URL(url)
+    // lh3.googleusercontent.com/d/... → direct view URL
+    if (u.hostname === 'lh3.googleusercontent.com') {
+      const match = u.pathname.match(/\/d\/([a-zA-Z0-9_-]+)/)
+      if (match) return `https://drive.google.com/uc?export=view&id=${match[1]}`
+    }
+    // drive.google.com variants
+    if (u.hostname === 'drive.google.com') {
+      // /file/d/FILE_ID/...
+      const pathMatch = u.pathname.match(/\/d\/([a-zA-Z0-9_-]+)/)
+      if (pathMatch) return `https://drive.google.com/uc?export=view&id=${pathMatch[1]}`
+      // /open?id=FILE_ID or /uc?id=FILE_ID
+      const id = u.searchParams.get('id')
+      if (id) return `https://drive.google.com/uc?export=view&id=${id}`
+    }
+  } catch (_) { /* invalid URL – return as-is */ }
+  return url
+}
+
 function ShareModal({ guest, wedding, baseUrl, onClose, toast }) {
   if (!guest) return null
 
@@ -91,18 +122,11 @@ function GuestModal({ guest, onSave, onClose, baseUrl }) {
     name:'', email:'', phone:'', table_number:'', plus_ones:0, rsvp_status:'pending', photo_url:''
   })
   const [photoFile,    setPhotoFile]    = useState(null)
-  const [photoPreview, setPhotoPreview] = useState(guest?.photo_url || null)
+  // photoPreview: file-reader data-URL for new file uploads, or normalised photo_url for URL-based photos
+  const [photoPreview, setPhotoPreview] = useState(() => normalizeImageUrl(guest?.photo_url) || null)
   const [saving,       setSaving]       = useState(false)
   const fileRef = useRef()
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
-
-  function handlePhoto(e) {
-    const file = e.target.files[0]; if (!file) return
-    setPhotoFile(file)
-    const reader = new FileReader()
-    reader.onload = ev => setPhotoPreview(ev.target.result)
-    reader.readAsDataURL(file)
-  }
 
   async function submit() {
     if (!form.name.trim()) return
@@ -122,21 +146,54 @@ function GuestModal({ guest, onSave, onClose, baseUrl }) {
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* Photo upload */}
-        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:18, padding:13,
+        {/* Gate Photo — shows URL preview (e.g. CSV import) or file-upload preview */}
+        <div style={{ display:'flex', alignItems:'flex-start', gap:14, marginBottom:18, padding:13,
                       background:'var(--cream)', borderRadius:10, border:'1px solid var(--border)' }}>
-          <div className="photo-circle" onClick={() => fileRef.current.click()}>
+          <div className="photo-circle" onClick={() => fileRef.current.click()} style={{ cursor:'pointer', flexShrink:0 }}>
             {photoPreview
-              ? <img src={photoPreview} alt="" />
+              ? <img src={photoPreview} alt="" onError={() => setPhotoPreview(null)} />
               : <span style={{ fontSize:22, color:'var(--muted)' }}>📷</span>}
           </div>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handlePhoto} />
-          <div>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
+            onChange={e => {
+              const file = e.target.files[0]; if (!file) return
+              setPhotoFile(file)
+              setForm(f => ({ ...f, photo_url: '' }))  // file upload wins; clear URL
+              const reader = new FileReader()
+              reader.onload = ev => setPhotoPreview(ev.target.result)
+              reader.readAsDataURL(file)
+            }} />
+          <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontSize:13, fontWeight:500, color:'var(--plum)', marginBottom:3 }}>Gate Photo</div>
             <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.6, marginBottom:6 }}>
               Shown to doorman when QR is scanned.
             </div>
-            <button className="btn btn-o btn-sm" onClick={() => fileRef.current.click()}>Upload Photo</button>
+            <button className="btn btn-o btn-sm" onClick={() => fileRef.current.click()}>⬆ Upload File</button>
+
+            {/* URL field — pre-filled from photo_url (e.g. imported from CSV / Google Drive) */}
+            <div style={{ marginTop:8 }}>
+              <label style={{ fontSize:11, color:'var(--muted)', display:'block', marginBottom:3 }}>
+                Or use image URL
+              </label>
+              <input
+                type="url"
+                placeholder="https://drive.google.com/… or any image URL"
+                value={form.photo_url || ''}
+                style={{ fontSize:11, width:'100%' }}
+                onChange={e => {
+                  const raw = e.target.value
+                  const normalised = normalizeImageUrl(raw)
+                  setForm(f => ({ ...f, photo_url: raw }))
+                  setPhotoFile(null)                // URL-based — no file to upload
+                  setPhotoPreview(normalised || null)
+                }}
+              />
+              {form.photo_url && !photoFile && (
+                <div style={{ fontSize:10, color:'var(--muted)', marginTop:3 }}>
+                  ✓ Image loaded from URL
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -267,8 +324,9 @@ export default function GuestList({ guests, onAdd, onEdit, onDelete, onViewCard,
           let rsvp = get('rsvp', 'rsvp status', 'rsvp_status') || 'pending'
           rsvp = ['pending', 'confirmed', 'declined'].includes(rsvp.toLowerCase()) ? rsvp.toLowerCase() : 'pending'
 
-          // Get photo URL from CSV (supports various column names)
-          const photoUrl = get('photo', 'image', 'photo_url', 'image_url', 'photo url', 'image url', 'picture', 'picture_url')
+          // Get photo URL from CSV (supports various column names) and normalise Drive URLs
+          const rawPhotoUrl = get('photo', 'image', 'photo_url', 'image_url', 'photo url', 'image url', 'picture', 'picture_url')
+          const photoUrl = normalizeImageUrl(rawPhotoUrl)
 
           return {
             name,

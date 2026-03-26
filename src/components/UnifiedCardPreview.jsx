@@ -279,7 +279,7 @@ export default function UnifiedCardPreview({
       {/* ── QR Code + Directions — extension strip BELOW the card ── */}
       {showBottomBar && (
         <div style={{
-          background: 'rgba(10,6,18,0.95)',
+          background: design?.bottom_bar_bg || '#0D0A14',
           borderRadius: '0 0 8px 8px',
           borderTop: `2px solid ${themeObj.acc}55`,
           display: 'flex',

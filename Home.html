@@ -166,6 +166,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   border:1px solid rgba(201,168,76,.2);
   border-radius:22px;padding:36px;
   width:100%;max-width:500px;
+  max-height:86vh;overflow:auto;
   box-shadow:0 32px 80px rgba(0,0,0,.5);
   transform:translateY(20px) scale(.97);
   transition:transform .3s cubic-bezier(.22,1,.36,1);
@@ -195,8 +196,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .map-search-btn:hover{background:rgba(201,168,76,.2)}
 .map-box{
   width:100%;height:220px;border-radius:12px;overflow:hidden;
-  border:1px solid rgba(201,168,76,.2);margin:4px 0 14px;background:#1a1126
+  border:1px solid rgba(201,168,76,.25);margin:4px 0 14px;background:#140c1f;
+  display:flex;align-items:center;justify-content:center;color:rgba(245,237,216,.35);font-size:12px
 }
+.map-box[data-ready="true"]{display:block;color:inherit;font-size:inherit}
 .map-help{font-size:11px;color:rgba(245,237,216,.45);margin:-6px 0 10px}
 .modal-btn{
   width:100%;padding:13px;background:var(--gold);color:#1A0E08;
@@ -322,7 +325,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <button type="button" class="map-search-btn" onclick="searchMapLocation()">Search</button>
     </div>
     <div class="map-help">Use search then drag the pin to exact location.</div>
-    <div id="np-map" class="map-box"></div>
+    <div id="np-map" class="map-box">Map loading…</div>
 
     <button class="modal-btn" id="np-btn" onclick="createProject()">
       <span id="np-btn-text">Create Project</span>
@@ -348,8 +351,6 @@ let selectedLatLng = null
 function isPreviewMode() {
   return window.location.protocol === 'file:'
     || window.self !== window.top          // inside an iframe (Cursor preview)
-    || window.location.hostname === 'localhost'
-    || window.location.hostname === '127.0.0.1'
 }
 
 const DEMO_PROJECTS = [
@@ -381,7 +382,7 @@ async function init() {
     }
     currentUser = data.session.user
     setupUI()
-    loadProjects()
+    await loadProjects()
   } catch (e) {
     const base = window.location.href.split('/').slice(0,-1).join('/')
     window.location.href = base + '/weddingiq-home.html'
@@ -408,6 +409,71 @@ async function loadProjects() {
     const saved = localStorage.getItem(key)
     PROJECTS = saved ? JSON.parse(saved) : []
   } catch { PROJECTS = [] }
+
+  // Root-cause fix: existing projects were created in Supabase (React app),
+  // but this page only read localStorage. Load from Supabase and sync to localStorage.
+  try {
+    const { data: weddings, error: wErr } = await sb
+      .from('weddings')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+    if (wErr) throw wErr
+
+    const weddingList = weddings || []
+
+    // Compute guest counts (optional but nice)
+    const ids = weddingList.map(w => w.id).filter(Boolean)
+    let countsByWedding = {}
+    if (ids.length) {
+      const { data: guests, error: gErr } = await sb
+        .from('guests')
+        .select('wedding_id,checked_in')
+        .eq('user_id', currentUser.id)
+        .in('wedding_id', ids)
+      if (!gErr && guests) {
+        countsByWedding = guests.reduce((acc, g) => {
+          const wid = g.wedding_id
+          if (!wid) return acc
+          const cur = acc[wid] || { guestCount: 0, checkedIn: 0 }
+          cur.guestCount += 1
+          if (g.checked_in) cur.checkedIn += 1
+          acc[wid] = cur
+          return acc
+        }, {})
+      }
+    }
+
+    const fromDb = weddingList.map(w => {
+      const c = countsByWedding[w.id] || {}
+      return {
+        id: w.id,
+        bride: w.bride || '',
+        groom: w.groom || '',
+        date: w.date || '',
+        venue: w.venue || '',
+        hosts: w.hosts || '',
+        address: w.address || '',
+        guestCount: c.guestCount ?? (w.guest_count ?? 0),
+        checkedIn: c.checkedIn ?? (w.checked_in_count ?? 0),
+        createdAt: w.created_at || new Date().toISOString(),
+      }
+    })
+
+    // Merge: keep local projects that aren't in DB yet, prefer DB version when IDs match
+    const merged = []
+    const seen = new Set()
+    for (const p of fromDb) { merged.push(p); seen.add(String(p.id)) }
+    for (const lp of (PROJECTS || [])) {
+      if (!lp?.id) continue
+      if (!seen.has(String(lp.id))) merged.push(lp)
+    }
+    PROJECTS = merged
+    localStorage.setItem(key, JSON.stringify(PROJECTS))
+  } catch (_) {
+    // If Supabase is unreachable, fall back to localStorage projects
+  }
+
   renderProjects()
 }
 
@@ -589,9 +655,15 @@ let editingProjectId = null
 
 function initProjectMap() {
   const mapEl = document.getElementById('np-map')
-  if (!window.L || !mapEl) return
+  if (!mapEl) return
+  if (!window.L) {
+    mapEl.textContent = 'Map failed to load. Check internet access to OpenStreetMap / Leaflet CDN.'
+    showToast('Map library not available', 'err')
+    return
+  }
 
   if (!mapRef) {
+    mapEl.dataset.ready = 'true'
     mapRef = L.map('np-map', { zoomControl: true }).setView([-15.4167, 28.2833], 12)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
