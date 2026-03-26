@@ -308,7 +308,7 @@ export default function App() {
     <div className="app-layout">
       {/* Mobile Toggle */}
       <div className="mobile-toggle">
-        <span className="sb-logo-text">WeddingIQ</span>
+        <img src="/Assets/wedding%20logo.png" alt="WeddingIQ" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
         <span className="hamburger" onClick={() => setSidebarOpen(true)}>☰</span>
       </div>
 

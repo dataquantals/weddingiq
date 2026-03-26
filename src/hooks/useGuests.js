@@ -32,6 +32,11 @@ export function useGuests(user, weddingId) {
       .finally(() => setLoading(false))
   }, [user, weddingId])
 
+  const sanitizeData = (d) => ({
+    ...d,
+    plus_ones: parseInt(d.plus_ones) || 0
+  })
+
   const addGuest = useCallback(async (data, photoFile) => {
     const id = uuid()
     let photo_url = null
@@ -39,7 +44,8 @@ export function useGuests(user, weddingId) {
       try { photo_url = await uploadPhoto(id, photoFile) }
       catch (e) { console.error('addGuest photo upload:', e.message); throw e }
     }
-    const guest = { ...data, id, user_id: user.id, wedding_id: weddingId, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString(), photo_url }
+    const cleanData = sanitizeData(data)
+    const guest = { ...cleanData, id, user_id: user.id, wedding_id: weddingId, qr_token: uuid(), checked_in: false, created_at: new Date().toISOString(), photo_url }
     setGuests(prev => [...prev, guest])
     upsertGuest(guest)
     return guest
@@ -51,8 +57,9 @@ export function useGuests(user, weddingId) {
       try { photo_url = await uploadPhoto(id, photoFile) }
       catch (e) { console.error('updateGuest photo upload:', e.message); throw e }
     }
-    setGuests(prev => prev.map(g => g.id === id ? { ...g, ...data, ...(photo_url !== undefined ? { photo_url } : {}) } : g))
-    const updated = { ...guests.find(g => g.id === id), ...data, ...(photo_url !== undefined ? { photo_url } : {}) }
+    const cleanData = sanitizeData(data)
+    setGuests(prev => prev.map(g => g.id === id ? { ...g, ...cleanData, ...(photo_url !== undefined ? { photo_url } : {}) } : g))
+    const updated = { ...guests.find(g => g.id === id), ...cleanData, ...(photo_url !== undefined ? { photo_url } : {}) }
     upsertGuest(updated)
     return updated
   }, [guests, user])
