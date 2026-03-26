@@ -52,16 +52,26 @@ export default function UnifiedCardPreview({
     .replace(/\{guest\}/gi, displayGuest)
     .replace(/\{name of (?:the )?invit(?:e|ee)\}/gi, displayGuest)
 
+  // Resolve theme FIRST — used by QR useEffect and bottomBarBg below
+  const themeObj = theme || { bg: '#F5EDD8', acc: '#C9A84C', txt: '#2D1540', sub: '#6B4580' }
+
+  // Derive bottom-bar background from the theme palette (no more hardcoded black)
+  const bottomBarBg = design?.bottom_bar_bg
+    || (themeObj.dark ? themeObj.dark : `color-mix(in srgb, ${themeObj.txt} 85%, ${themeObj.bg} 15%)`)
+
   // Generate QR code from guest token
   useEffect(() => {
     const token = guest?.qr_token
     if (!token) { setQrDataUrl(null); return }
     const base = window.location.origin
+    // Use theme colours so the QR matches the card brand palette
+    const darkCol  = themeObj.txt || '#2D1540'
+    const lightCol = themeObj.bg  || '#FFFFFF'
     QRCode.toDataURL(`${base}/?invite=${token}`, {
       width: 120, margin: 1,
-      color: { dark: '#2D1540', light: '#FFFFFF' }
+      color: { dark: darkCol, light: lightCol }
     }).then(setQrDataUrl).catch(() => setQrDataUrl(null))
-  }, [guest?.qr_token])
+  }, [guest?.qr_token, themeObj.txt, themeObj.bg])
 
   // Venue addresses
   const ceremonyAddr  = venues?.ceremony?.address
@@ -76,9 +86,8 @@ export default function UnifiedCardPreview({
   // Only show bottom bar if there's QR or a real guest
   const showBottomBar = qrDataUrl || hasRealGuest
 
-  const page     = canvasPages?.[currentPage] || { objects: [], background: 'transparent' }
-  const themeObj = theme || { bg: '#F5EDD8', acc: '#C9A84C', txt: '#2D1540', sub: '#6B4580' }
-  
+  const page = canvasPages?.[currentPage] || { objects: [], background: 'transparent' }
+
   const backgroundStyle = bgImage 
     ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: themeObj.bg, backgroundSize: themeObj.backgroundSize || 'auto' }
@@ -279,7 +288,7 @@ export default function UnifiedCardPreview({
       {/* ── QR Code + Directions — extension strip BELOW the card ── */}
       {showBottomBar && (
         <div style={{
-          background: design?.bottom_bar_bg || '#0D0A14',
+          background: bottomBarBg,
           borderRadius: '0 0 8px 8px',
           borderTop: `2px solid ${themeObj.acc}55`,
           display: 'flex',
