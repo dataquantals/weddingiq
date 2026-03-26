@@ -8,12 +8,27 @@ export function useGuests(user, weddingId) {
 
   // Load from Supabase — scoped by wedding project
   useEffect(() => {
-    if (!user) { setGuests([]); setLoading(false); return }
-    if (!weddingId) { setGuests([]); setLoading(false); return }
+    if (!user) { 
+      setGuests([]); 
+      setLoading(false); 
+      return 
+    }
+    if (!weddingId) { 
+      setGuests([]); 
+      setLoading(false); 
+      return 
+    }
+    
     setLoading(true)
     loadGuests(user.id, weddingId)
-      .then(data => { setGuests(data) })
-      .catch(e => { console.warn('load guests:', e.message); setGuests([]) })
+      .then(data => { 
+        console.log(`✓ Loaded ${data?.length || 0} guests for wedding ${weddingId}`)
+        setGuests(data || []) 
+      })
+      .catch(e => { 
+        console.error('Failed to load guests:', e.message, e)
+        setGuests([]) 
+      })
       .finally(() => setLoading(false))
   }, [user, weddingId])
 
