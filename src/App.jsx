@@ -181,16 +181,8 @@ export default function App() {
 
   // Show project selection if user has projects but none selected and not creating a new one
   if (status === 'authenticated' && projects && projects.length > 0 && !config && !creatingNew) {
-    return (
-      <>
-        <ProjectSelect
-          projects={projects}
-          onSelect={selectProject}
-          onCreate={() => setCreatingNew(true)}
-        />
-        {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
-      </>
-    )
+    window.location.href = '/user-home.html'
+    return null
   }
 
   // First time user setup (no projects exist) OR creating a new project
