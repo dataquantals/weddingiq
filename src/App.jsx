@@ -246,7 +246,7 @@ export default function App() {
         onGate={() => { setGate(true); setSidebarOpen(false); }}
         user={user}
         onSignOut={signOut}
-        onHome={() => { window.location.href = '/user-home.html'; }}
+        onHome={projects.length > 1 ? () => { clearSelection(); setSidebarOpen(false); } : null}
         isOpen={sidebarOpen}
       />
       
