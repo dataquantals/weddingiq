@@ -6,6 +6,7 @@ import { useDesign } from './hooks/useDesign.js'
 import { useGuests } from './hooks/useGuests.js'
 import { useCanvasDesign } from './hooks/useCanvasDesign.js'
 import { usePublicInvite } from './hooks/usePublicInvite.js'
+import { usePublicGate } from './hooks/usePublicGate.js'
 import { THEMES } from './lib/constants.js'
 import { findAnyTheme } from './lib/themesGenerator.js'
 import GuestList from './pages/GuestList.jsx'
@@ -29,7 +30,10 @@ import './styles/globals.css'
 
 // Check URL params for special modes
 const params  = new URLSearchParams(window.location.search)
-const urlGate = params.get('gate') === '1'
+const urlGateParam = params.get('gate')
+const urlGate = urlGateParam === '1'
+const isPublicGate = urlGateParam && urlGateParam !== '1'
+
 const urlRsvp = params.get('rsvp')
 const urlInvite = params.get('invite')
 
@@ -63,6 +67,7 @@ export default function App() {
   const { design, theme, bgImage, history, loading: designLoading, setTheme, setBgImage, patchDesign, undo, updateField } = useDesign(user, config?.id)
   const { canvasPages, setCanvasPages, selectedBorder, setSelectedBorder, borderCategory, setBorderCategory, borderScale, setBorderScale, saveStatus: canvasSaveStatus, saveCanvas, canvasLoaded, clearCanvas } = useCanvasDesign(user, config)
   const { guest: pGuest, wedding: pWedding, design: pDesign, canvasDesign: pCanvas, loading: pLoading } = usePublicInvite(urlInvite)
+  const { guests: pgGuests, loading: pgLoading, checkIn: pgCheckIn } = usePublicGate(isPublicGate ? urlGateParam : null)
 
   const [page,        setPage]        = useState('dashboard')
   const [gate,        setGate]        = useState(urlGate)
@@ -181,6 +186,40 @@ export default function App() {
           <div style={{ fontSize:52, marginBottom:14 }}>💌</div>
           <div style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--plum)', marginBottom:8 }}>Invite not found</div>
           <div style={{ fontSize:14, color:'var(--muted)', lineHeight:1.6 }}>This invitation link may be expired or invalid. Please contact the couple for a new link.</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Handle Public Gate Check-in URL
+  if (isPublicGate) {
+    if (pgLoading) return (
+      <div className="cfg-screen">
+        <div style={{ textAlign:'center', padding:'60px 20px' }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>🚪</div>
+          <div className="cfg-title">Gate Scanner</div>
+          <div className="cfg-sub">Loading guest list...</div>
+        </div>
+      </div>
+    )
+    if (pgGuests.length > 0) {
+      return (
+        <>
+          <GateScanner
+            guests={pgGuests}
+            onCheckIn={(id) => { pgCheckIn(id); showToast('Guest checked in ✓', 'ok') }}
+            onClose={() => window.location.href = '/'}
+          />
+          {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+        </>
+      )
+    }
+    return (
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--cream)', fontFamily:'var(--sans)' }}>
+        <div style={{ textAlign:'center', padding:40, maxWidth:380 }}>
+          <div style={{ fontSize:52, marginBottom:14 }}>🚪</div>
+          <div style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--plum)', marginBottom:8 }}>Gate not found</div>
+          <div style={{ fontSize:14, color:'var(--muted)', lineHeight:1.6 }}>This gate link is invalid or has no guests. Check with the couple for the correct link.</div>
         </div>
       </div>
     )

@@ -87,7 +87,7 @@ export default function Settings({ user, config, guests = [], onUpdate, onSignOu
   const [pwSaving, setPwSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testMsg, setTestMsg] = useState('')
-  const gateUrl = window.location.origin + window.location.pathname + '?gate=1'
+  const gateUrl = window.location.origin + window.location.pathname + '?gate=' + (config?.id || '1')
 
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0]
