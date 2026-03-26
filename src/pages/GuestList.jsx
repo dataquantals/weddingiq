@@ -267,6 +267,9 @@ export default function GuestList({ guests, onAdd, onEdit, onDelete, onViewCard,
           let rsvp = get('rsvp', 'rsvp status', 'rsvp_status') || 'pending'
           rsvp = ['pending', 'confirmed', 'declined'].includes(rsvp.toLowerCase()) ? rsvp.toLowerCase() : 'pending'
 
+          // Get photo URL from CSV (supports various column names)
+          const photoUrl = get('photo', 'image', 'photo_url', 'image_url', 'photo url', 'image url', 'picture', 'picture_url')
+
           return {
             name,
             email: get('email'),
@@ -274,6 +277,7 @@ export default function GuestList({ guests, onAdd, onEdit, onDelete, onViewCard,
             table_number: toInt(tableRaw, null),
             plus_ones: toInt(plusRaw, 0),
             rsvp_status: rsvp,
+            photo_url: photoUrl || null,
           }
         }).filter(Boolean)
 
