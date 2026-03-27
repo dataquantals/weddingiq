@@ -106,11 +106,31 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
     clearTimeout(searchDebounce.current)
     searchDebounce.current = setTimeout(async () => {
       try {
-        // Use Photon for much better and faster autocomplete suggestions (like Google)
-        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=15`
-        const res = await fetch(url)
+        // Step 1: Try the full specific query
+        const pUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=15`
+        const res = await fetch(pUrl)
         const data = await res.json()
-        setSearchResults(data.features || [])
+        let results = data.features || []
+
+        // Step 2: Robust Fallback (Google-style)
+        // If the specific search failed (often because of extra labels or business names not in the map),
+        // we automatically try searching for the primary components (streets, districts, etc.)
+        if (results.length === 0 && (query.includes(',') || query.includes('.') || query.includes(' '))) {
+          // Tokenize by punctuation or space-separated parts if long
+          const parts = query.split(/[,.]/).map(s => s.trim()).filter(p => p.length > 3)
+          
+          for (const component of parts) {
+            const rUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(component)}&limit=15`
+            const resR = await fetch(rUrl)
+            const dataR = await resR.json()
+            if (dataR.features?.length > 0) {
+              results = dataR.features
+              break // Found something useful
+            }
+          }
+        }
+        
+        setSearchResults(results)
         setShowResults(true)
       } catch (e) {
         console.error('Search error:', e)
@@ -524,55 +544,66 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
             </div>
           </div>
 
-          {showResults && searchResults.length > 0 && (
+          {showResults && (
             <div style={{
               position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
               background: '#fff', border: '1px solid var(--border)', borderRadius: 12,
               boxShadow: '0 8px 24px rgba(74,31,92,.18)', zIndex: 3000, maxHeight: 300, overflowY: 'auto',
               borderTop: 'none', overflowX: 'hidden'
             }}>
-              {searchResults.map((feat, i) => {
-                const p = feat.properties
-                const name = p.name || p.city || p.country || 'Selected location'
-                const address = [p.street, p.district, p.city, p.state, p.country]
-                  .filter(Boolean)
-                  .filter((v, idx, self) => self.indexOf(v) === idx && v !== name)
-                  .slice(0, 3)
-                  .join(', ')
-
-                // Dynamic icon based on place type
-                let icon = '📍'
-                const type = p.osm_value || ''
-                if (type.includes('church') || type.includes('place_of_worship')) icon = '⛪'
-                else if (type.includes('hotel')) icon = '🏨'
-                else if (type.includes('restaurant') || type.includes('cafe')) icon = '🍽'
-                else if (type.includes('park') || type.includes('garden')) icon = '🌳'
-                else if (type.includes('airport')) icon = '✈️'
-                else if (type.includes('bar') || type.includes('club')) icon = '🥂'
-
-                return (
-                  <div key={i} onClick={() => selectVenue(feat)}
-                    style={{ 
-                      display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 16px', 
-                      cursor: 'pointer', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f0f0' : 'none',
-                      transition: 'background .15s'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#fcf8f0'}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-                  >
-                    <div style={{ 
-                      width: 28, height: 28, borderRadius: 6, background: 'var(--cream-d)', 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, marginTop: 2 
-                    }}>
-                      {icon}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--plum)', lineHeight: 1.3 }}>{name}</div>
-                      {address && <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 }}>{address}</div>}
-                    </div>
+              {searchResults.length === 0 ? (
+                <div style={{ padding: '20px 16px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>🔍</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--plum)' }}>No exact matches found</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
+                    Try searching for just the <strong>street name</strong> or <strong>district</strong>.<br/>
+                    (e.g., "Buchi Road Northmead")
                   </div>
-                )
-              })}
+                </div>
+              ) : (
+                searchResults.map((feat, i) => {
+                  const p = feat.properties
+                  const name = p.name || p.city || p.country || 'Selected location'
+                  const address = [p.street, p.district, p.city, p.state, p.country]
+                    .filter(Boolean)
+                    .filter((v, idx, self) => self.indexOf(v) === idx && v !== name)
+                    .slice(0, 3)
+                    .join(', ')
+
+                  // Dynamic icon based on place type
+                  let icon = '📍'
+                  const type = p.osm_value || ''
+                  if (type.includes('church') || type.includes('place_of_worship')) icon = '⛪'
+                  else if (type.includes('hotel')) icon = '🏨'
+                  else if (type.includes('restaurant') || type.includes('cafe')) icon = '🍽'
+                  else if (type.includes('park') || type.includes('garden')) icon = '🌳'
+                  else if (type.includes('airport')) icon = '✈️'
+                  else if (type.includes('bar') || type.includes('club')) icon = '🥂'
+
+                  return (
+                    <div key={i} onClick={() => selectVenue(feat)}
+                      style={{ 
+                        display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 16px', 
+                        cursor: 'pointer', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f0f0' : 'none',
+                        transition: 'background .15s'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#fcf8f0'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                    >
+                      <div style={{ 
+                        width: 28, height: 28, borderRadius: 6, background: 'var(--cream-d)', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, marginTop: 2 
+                      }}>
+                        {icon}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--plum)', lineHeight: 1.3 }}>{name}</div>
+                        {address && <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 }}>{address}</div>}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
           )}
         </div>
