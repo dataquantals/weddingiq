@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Papa from 'papaparse'
 import { initials, badgeClass } from '../lib/helpers.js'
 import { uploadPhoto } from '../lib/supabase.js'
@@ -281,9 +281,25 @@ export default function GuestList({ guests, onAdd, onEdit, onDelete, onViewCard,
   const [editGuest,   setEditGuest]   = useState(null)
   const [importRows,  setImportRows]  = useState(null)
   const [shareGuest,  setShareGuest]  = useState(null)
+  const [showImportDropdown, setShowImportDropdown] = useState(false)
+  const [showPasteModal, setShowPasteModal] = useState(false)
+  const [pasteText, setPasteText] = useState('')
   const csvRef = useRef()
+  const excelRef = useRef()
+  const txtRef = useRef()
 
   const baseUrl = window.location.href.split('?')[0]
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (showImportDropdown && !e.target.closest('.import-dropdown-wrapper')) {
+        setShowImportDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showImportDropdown])
 
   const filtered = guests.filter(g => {
     const q = search.toLowerCase()
@@ -349,6 +365,61 @@ export default function GuestList({ guests, onAdd, onEdit, onDelete, onViewCard,
     e.target.value = ''
   }
 
+  function handleExcel(e) {
+    const file = e.target.files[0]; if (!file) return
+    // For now, treat Excel files like CSV (in a real implementation, you'd use xlsx library)
+    toast('Excel support coming soon - please save as CSV and import', 'warn')
+    e.target.value = ''
+  }
+
+  function handleTxt(e) {
+    const file = e.target.files[0]; if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const text = event.target.result
+      // Parse simple text format (one guest per line)
+      const lines = text.split('\n').filter(line => line.trim())
+      const rows = lines.map(line => {
+        const parts = line.split(',').map(p => p.trim())
+        const name = parts[0]
+        if (!name) return null
+        return {
+          name,
+          email: parts[1] || '',
+          phone: parts[2] || '',
+          table_number: parseInt(parts[3]) || null,
+          plus_ones: parseInt(parts[4]) || 0,
+          rsvp_status: 'pending',
+          photo_url: null,
+        }
+      }).filter(Boolean)
+      setImportRows(rows)
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  function handlePasteImport() {
+    const lines = pasteText.split('\n').filter(line => line.trim())
+    const rows = lines.map(line => {
+      const parts = line.split(',').map(p => p.trim())
+      const name = parts[0]
+      if (!name) return null
+      return {
+        name,
+        email: parts[1] || '',
+        phone: parts[2] || '',
+        table_number: parseInt(parts[3]) || null,
+        plus_ones: parseInt(parts[4]) || 0,
+        rsvp_status: 'pending',
+        photo_url: null,
+      }
+    }).filter(Boolean)
+    setImportRows(rows)
+    setShowPasteModal(false)
+    setPasteText('')
+  }
+
   async function handleSave(form, photoFile) {
     if (editGuest) {
       await onEdit(editGuest.id, form, photoFile)
@@ -382,11 +453,43 @@ export default function GuestList({ guests, onAdd, onEdit, onDelete, onViewCard,
           </span>
         </div>
         <div style={{ display:'flex', gap:8 }}>
-          <button className="btn btn-o btn-sm" onClick={() => csvRef.current.click()}>
-            <Icon name="upload" size={14} style={{ marginRight: 4 }} />
-            Import CSV
-          </button>
-          <input ref={csvRef} type="file" accept=".csv" style={{ display:'none' }} onChange={handleCSV} />
+          <div style={{ position: 'relative' }} className="import-dropdown-wrapper">
+            <button className="btn btn-o btn-sm" onClick={() => setShowImportDropdown(!showImportDropdown)}>
+              <Icon name="upload" size={14} style={{ marginRight: 4 }} />
+              Import {showImportDropdown ? '▲' : '▼'}
+            </button>
+            {showImportDropdown && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 1000,
+                background: '#fff', border: '1px solid var(--border)', borderRadius: 8,
+                boxShadow: '0 4px 16px rgba(0,0,0,.12)', minWidth: 160, overflow: 'hidden'
+              }}>
+                <button className="btn btn-sm" style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0, border: 'none' }}
+                  onClick={() => { csvRef.current.click(); setShowImportDropdown(false); }}>
+                  <Icon name="file" size={14} style={{ marginRight: 6 }} />
+                  Import CSV
+                </button>
+                <button className="btn btn-sm" style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0, border: 'none' }}
+                  onClick={() => { excelRef.current.click(); setShowImportDropdown(false); }}>
+                  <Icon name="file" size={14} style={{ marginRight: 6 }} />
+                  Import Excel
+                </button>
+                <button className="btn btn-sm" style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0, border: 'none' }}
+                  onClick={() => { txtRef.current.click(); setShowImportDropdown(false); }}>
+                  <Icon name="file" size={14} style={{ marginRight: 6 }} />
+                  Import .txt
+                </button>
+                <button className="btn btn-sm" style={{ width: '100%', justifyContent: 'flex-start', borderRadius: 0, border: 'none' }}
+                  onClick={() => { setShowPasteModal(true); setShowImportDropdown(false); }}>
+                  <Icon name="edit" size={14} style={{ marginRight: 6 }} />
+                  Paste here
+                </button>
+              </div>
+            )}
+            <input ref={csvRef} type="file" accept=".csv" style={{ display:'none' }} onChange={handleCSV} />
+            <input ref={excelRef} type="file" accept=".xlsx,.xls" style={{ display:'none' }} onChange={handleExcel} />
+            <input ref={txtRef} type="file" accept=".txt" style={{ display:'none' }} onChange={handleTxt} />
+          </div>
           <button className="btn btn-p btn-sm" onClick={() => { setEditGuest(null); setShowModal(true) }}>+ Add Guest</button>
           <button className="btn btn-o btn-sm" style={{ color:'var(--err)', borderColor:'rgba(196,56,56,.3)' }}
             onClick={handleClearAll} disabled={!guests.length}>
@@ -472,6 +575,38 @@ export default function GuestList({ guests, onAdd, onEdit, onDelete, onViewCard,
           toast={toast}
           onClose={() => setShareGuest(null)}
         />
+      )}
+      {showPasteModal && (
+        <div className="modal-bg">
+          <div className="modal">
+            <div className="modal-hd">
+              <span className="modal-title">Paste Guest List</span>
+              <button className="modal-close" onClick={() => setShowPasteModal(false)}>✕</button>
+            </div>
+            <div className="fg">
+              <label>Paste guest data (one per line, comma-separated: name,email,phone,table,plus_ones)</label>
+              <textarea
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder="John Doe,john@example.com,555-0123,1,0&#10;Jane Smith,jane@example.com,555-0456,1,1&#10;Bob Wilson,bob@example.com,555-0789,2,0"
+                style={{ minHeight: 120, fontFamily: 'monospace', fontSize: 12 }}
+              />
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 8 }}>
+              Format: Name, Email, Phone, Table Number, Plus Ones (only name is required)
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+              <button className="btn btn-o" onClick={() => setShowPasteModal(false)}>Cancel</button>
+              <button 
+                className="btn btn-p" 
+                onClick={handlePasteImport}
+                disabled={!pasteText.trim()}
+              >
+                Import {pasteText.split('\n').filter(line => line.trim()).length} Guests
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
