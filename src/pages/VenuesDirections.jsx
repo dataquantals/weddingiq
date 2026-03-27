@@ -96,8 +96,8 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
   // Debounced search
   const handleSearch = (query) => {
     setSearchQuery(query)
+    setSearchResults([])
     if (query.trim().length < 2) {
-      setSearchResults([])
       setShowResults(false)
       setIsSearching(false)
       return
@@ -106,38 +106,17 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
     clearTimeout(searchDebounce.current)
     searchDebounce.current = setTimeout(async () => {
       try {
-        // Step 1: Try the full specific query
-        const pUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=15`
-        const res = await fetch(pUrl)
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&addressdetails=1`
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
         const data = await res.json()
-        let results = data.features || []
-
-        // Step 2: Robust Fallback (Google-style)
-        // If the specific search failed (often because of extra labels or business names not in the map),
-        // we automatically try searching for the primary components (streets, districts, etc.)
-        if (results.length === 0 && (query.includes(',') || query.includes('.') || query.includes(' '))) {
-          // Tokenize by punctuation or space-separated parts if long
-          const parts = query.split(/[,.]/).map(s => s.trim()).filter(p => p.length > 3)
-          
-          for (const component of parts) {
-            const rUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(component)}&limit=15`
-            const resR = await fetch(rUrl)
-            const dataR = await resR.json()
-            if (dataR.features?.length > 0) {
-              results = dataR.features
-              break // Found something useful
-            }
-          }
-        }
-        
-        setSearchResults(results)
+        setSearchResults(data || [])
         setShowResults(true)
+        setIsSearching(false)
       } catch (e) {
         console.error('Search error:', e)
-      } finally {
         setIsSearching(false)
       }
-    }, 280) // Slightly faster debounce for "snappy" feel
+    }, 350)
   }
 
   // Close dropdown on outside click
@@ -165,24 +144,11 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
     })
   }
 
-  const selectVenue = (feat) => {
-    const p = feat.properties
-    const coords = feat.geometry.coordinates // [lng, lat]
+  const selectVenue = (result) => {
+    const addr = result.display_name
+    const lat = parseFloat(result.lat)
+    const lng = parseFloat(result.lon)
     
-    const lat = coords[1]
-    const lng = coords[0]
-    
-    // Construct a cleaner address display
-    // If it has a specific vendor/place name, use it
-    const venueName = p.name || ''
-    const street = p.street ? `${p.street}${p.housenumber ? ' ' + p.housenumber : ''}` : ''
-    const city = p.city || p.town || p.village || ''
-    const locality = [city, p.country].filter(Boolean).join(', ')
-    
-    // Final display name
-    let addr = [venueName, street, locality].filter(Boolean).join(', ')
-    if (!addr) addr = p.label || 'Unknown location'
-
     if (searchTarget === 'reception') {
       updateReception({ address: addr, lat, lng })
       setReceptionData(prev => ({...prev, address: addr, lat, lng}))
@@ -561,27 +527,14 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
                   </div>
                 </div>
               ) : (
-                searchResults.map((feat, i) => {
-                  const p = feat.properties
-                  const name = p.name || p.city || p.country || 'Selected location'
-                  const address = [p.street, p.district, p.city, p.state, p.country]
-                    .filter(Boolean)
-                    .filter((v, idx, self) => self.indexOf(v) === idx && v !== name)
-                    .slice(0, 3)
-                    .join(', ')
-
-                  // Dynamic icon based on place type
-                  let icon = '📍'
-                  const type = p.osm_value || ''
-                  if (type.includes('church') || type.includes('place_of_worship')) icon = '⛪'
-                  else if (type.includes('hotel')) icon = '🏨'
-                  else if (type.includes('restaurant') || type.includes('cafe')) icon = '🍽'
-                  else if (type.includes('park') || type.includes('garden')) icon = '🌳'
-                  else if (type.includes('airport')) icon = '✈️'
-                  else if (type.includes('bar') || type.includes('club')) icon = '🥂'
+                searchResults.map((result, i) => {
+                  const parts = result.display_name.split(', ')
+                  const name = parts.slice(0, 2).join(', ')
+                  const address = parts.slice(2, 5).join(', ')
+                  const icon = result.type === 'amenity' ? '�' : result.type === 'building' ? '🏢' : '📍'
 
                   return (
-                    <div key={i} onClick={() => selectVenue(feat)}
+                    <div key={i} onClick={() => selectVenue(result)}
                       style={{ 
                         display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 16px', 
                         cursor: 'pointer', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f0f0' : 'none',
