@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import MapAddressPicker from '../components/MapAddressPicker.jsx'
+import VenueMap from '../components/VenueMap.jsx'
 import 'leaflet/dist/leaflet.css'
+import 'leaflet-control-geocoder/dist/Control.Geocoder.css'
+import 'leaflet-control-geocoder'
 export default function ConfigScreen({ onSave, initialData, onBack }) {
   const [form, setForm] = useState({ bride:'', groom:'', date:'', hosts:'', venue:'', address:'', lat: null, lng: null })
   const [err,  setErr]  = useState('')
@@ -52,7 +54,7 @@ export default function ConfigScreen({ onSave, initialData, onBack }) {
           <div className="fg">
             <label>Venue Address</label>
             <input type="text" placeholder="123 Main St, City" value={form.address} onChange={set('address')} />
-            <MapAddressPicker 
+            <VenueMap 
               address={form.address} 
               venue={form.venue} 
               lat={form.lat} 

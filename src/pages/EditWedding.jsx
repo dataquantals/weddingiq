@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { THEMES, IMG_PACKS } from '../lib/constants.js'
 import { fmtDate } from '../lib/helpers.js'
 import UnifiedCardPreview from '../components/UnifiedCardPreview.jsx'
-import MapAddressPicker from '../components/MapAddressPicker.jsx'
-import Icon from '../components/Icon.jsx'
+import VenueMap from '../components/VenueMap.jsx'
 
 // ─────────────────────────────────────────────
 // Section wrapper for visual grouping
@@ -119,7 +118,7 @@ export default function EditWedding({
               <div className="fg">
                 <label>Venue Address</label>
                 <input type="text" value={weddingForm.address} onChange={set('address')} placeholder="123 Main St, City" />
-                <MapAddressPicker 
+                <VenueMap 
                   address={weddingForm.address} 
                   venue={weddingForm.venue} 
                   lat={weddingForm.lat} 
