@@ -59,7 +59,7 @@ export default function VenueMap({ address, venue, onAddressChange, onLatLngChan
       suggestMinLength: 2,
       queryDelay: 250,
       suggestTimeout: 5000,
-      geocoder: L.Control.Geocoder.nominatim,
+      geocoder: L.Control.Geocoder.photon(),
       expand: 'click'
     }).on('markgeocode', function (e) {
       const center = e.geocode.center

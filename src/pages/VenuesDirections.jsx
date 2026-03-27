@@ -30,6 +30,8 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [showResults, setShowResults] = useState(false)
+  const [searchTarget, setSearchTarget] = useState('ceremony') // 'ceremony' or 'reception'
+  const [isSearching, setIsSearching] = useState(false)
   const [saveStatus, setSaveStatus] = useState(false)
   const searchDebounce = useRef(null)
   const searchWrap = useRef(null)
@@ -94,23 +96,28 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
   // Debounced search
   const handleSearch = (query) => {
     setSearchQuery(query)
-    setSearchResults([])
     if (query.trim().length < 2) {
+      setSearchResults([])
       setShowResults(false)
+      setIsSearching(false)
       return
     }
+    setIsSearching(true)
     clearTimeout(searchDebounce.current)
     searchDebounce.current = setTimeout(async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&addressdetails=1`
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
+        // Use Photon for much better and faster autocomplete suggestions (like Google)
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=15`
+        const res = await fetch(url)
         const data = await res.json()
-        setSearchResults(data || [])
+        setSearchResults(data.features || [])
         setShowResults(true)
       } catch (e) {
         console.error('Search error:', e)
+      } finally {
+        setIsSearching(false)
       }
-    }, 350)
+    }, 280) // Slightly faster debounce for "snappy" feel
   }
 
   // Close dropdown on outside click
@@ -138,12 +145,32 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
     })
   }
 
-  const selectVenue = (result) => {
-    const addr = result.display_name
-    const lat = parseFloat(result.lat)
-    const lng = parseFloat(result.lon)
-    updateCeremony({ address: addr, lat, lng })
-    setCeremonyData(prev => ({...prev, address: addr, lat, lng}))
+  const selectVenue = (feat) => {
+    const p = feat.properties
+    const coords = feat.geometry.coordinates // [lng, lat]
+    
+    const lat = coords[1]
+    const lng = coords[0]
+    
+    // Construct a cleaner address display
+    // If it has a specific vendor/place name, use it
+    const venueName = p.name || ''
+    const street = p.street ? `${p.street}${p.housenumber ? ' ' + p.housenumber : ''}` : ''
+    const city = p.city || p.town || p.village || ''
+    const locality = [city, p.country].filter(Boolean).join(', ')
+    
+    // Final display name
+    let addr = [venueName, street, locality].filter(Boolean).join(', ')
+    if (!addr) addr = p.label || 'Unknown location'
+
+    if (searchTarget === 'reception') {
+      updateReception({ address: addr, lat, lng })
+      setReceptionData(prev => ({...prev, address: addr, lat, lng}))
+    } else {
+      updateCeremony({ address: addr, lat, lng })
+      setCeremonyData(prev => ({...prev, address: addr, lat, lng}))
+    }
+    
     setShowResults(false)
     setSearchQuery('')
   }
@@ -465,40 +492,83 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
         
         {/* Search bar on top of map */}
         <div ref={searchWrap} style={{ position: 'relative', marginBottom: 14, zIndex: 1000 }}>
-          <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: 8, background: '#fff', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <span style={{ padding: '0 10px', fontSize: 14 }}>🔍</span>
-            <input
-              type="text"
-              placeholder="Search venue name or address…"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Escape') setShowResults(false) }}
-              autoComplete="off"
-              style={{ flex: 1, border: 'none', outline: 'none', padding: '10px 0', fontSize: 13, fontFamily: 'var(--sans)', background: 'transparent' }}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: 10, background: '#fff', overflow: 'hidden', boxShadow: '0 4px 12px rgba(74,31,92,0.1)', transition: 'all 0.2s' }}>
+            {!receptionSame && (
+              <div style={{ padding: '4px', borderRight: '1px solid var(--border)', display: 'flex', gap: 2, background: '#f8f8f8' }}>
+                <button onClick={() => setSearchTarget('ceremony')} title="Update Ceremony"
+                  style={{ padding: '6px 12px', fontSize: 12, border: 'none', background: searchTarget === 'ceremony' ? 'var(--plum)' : 'transparent', color: searchTarget === 'ceremony' ? '#fff' : 'var(--muted)', borderRadius: 6, cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>🕌 Ceremony</button>
+                <button onClick={() => setSearchTarget('reception')} title="Update Reception"
+                  style={{ padding: '6px 12px', fontSize: 12, border: 'none', background: searchTarget === 'reception' ? 'var(--plum)' : 'transparent', color: searchTarget === 'reception' ? '#fff' : 'var(--muted)', borderRadius: 6, cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>🥂 Reception</button>
+              </div>
+            )}
+            <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+              <span style={{ padding: '0 12px', fontSize: 14, opacity: 0.6 }}>{isSearching ? '⏳' : '🔍'}</span>
+              <input
+                type="text"
+                placeholder={`Search and pin ${searchTarget} location…`}
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
+                onKeyDown={(e) => { if (e.key === 'Escape') setShowResults(false) }}
+                autoComplete="off"
+                style={{ flex: 1, border: 'none', outline: 'none', padding: '12px 0', fontSize: 13.5, fontFamily: 'var(--sans)', background: 'transparent' }}
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => { setSearchQuery(''); setSearchResults([]); setShowResults(false) }}
+                  style={{ background: 'transparent', border: 'none', padding: '0 12px', cursor: 'pointer', fontSize: 18, color: 'var(--muted)', display: 'flex', alignItems: 'center' }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
 
           {showResults && searchResults.length > 0 && (
             <div style={{
-              position: 'absolute', top: 'calc(100% + 2px)', left: 0, right: 0,
-              background: '#fff', border: '1px solid var(--border)', borderRadius: 8,
-              boxShadow: '0 4px 16px rgba(0,0,0,.12)', zIndex: 3000, maxHeight: 220, overflowY: 'auto',
+              position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+              background: '#fff', border: '1px solid var(--border)', borderRadius: 12,
+              boxShadow: '0 8px 24px rgba(74,31,92,.18)', zIndex: 3000, maxHeight: 300, overflowY: 'auto',
+              borderTop: 'none', overflowX: 'hidden'
             }}>
-              {searchResults.map((r, i) => {
-                const parts = r.display_name.split(', ')
-                const name = parts.slice(0, 2).join(', ')
-                const sub = parts.slice(2, 5).join(', ')
-                const icon = r.type === 'amenity' ? '🏛' : r.type === 'building' ? '🏢' : '📍'
+              {searchResults.map((feat, i) => {
+                const p = feat.properties
+                const name = p.name || p.city || p.country || 'Selected location'
+                const address = [p.street, p.district, p.city, p.state, p.country]
+                  .filter(Boolean)
+                  .filter((v, idx, self) => self.indexOf(v) === idx && v !== name)
+                  .slice(0, 3)
+                  .join(', ')
+
+                // Dynamic icon based on place type
+                let icon = '📍'
+                const type = p.osm_value || ''
+                if (type.includes('church') || type.includes('place_of_worship')) icon = '⛪'
+                else if (type.includes('hotel')) icon = '🏨'
+                else if (type.includes('restaurant') || type.includes('cafe')) icon = '🍽'
+                else if (type.includes('park') || type.includes('garden')) icon = '🌳'
+                else if (type.includes('airport')) icon = '✈️'
+                else if (type.includes('bar') || type.includes('club')) icon = '🥂'
+
                 return (
-                  <div key={i} onClick={() => selectVenue(r)}
-                    style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 12px', cursor: 'pointer', borderBottom: i < searchResults.length - 1 ? '1px solid var(--border)' : 'none' }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#f7f2ea'}
+                  <div key={i} onClick={() => selectVenue(feat)}
+                    style={{ 
+                      display: 'flex', alignItems: 'flex-start', gap: 12, padding: '11px 16px', 
+                      cursor: 'pointer', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f0f0' : 'none',
+                      transition: 'background .15s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#fcf8f0'}
                     onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                   >
-                    <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--plum)' }}>{name}</div>
-                      {sub && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>{sub}</div>}
+                    <div style={{ 
+                      width: 28, height: 28, borderRadius: 6, background: 'var(--cream-d)', 
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0, marginTop: 2 
+                    }}>
+                      {icon}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--plum)', lineHeight: 1.3 }}>{name}</div>
+                      {address && <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 }}>{address}</div>}
                     </div>
                   </div>
                 )
