@@ -497,4 +497,17 @@ tr:hover td { background: var(--cream); }
   animation: shimmer 1.5s infinite linear;
 }
 
+/* Mobile card button fixes */
+@media (max-width: 480px) {
+  .card-back a[onclick*="initBackCardMapNav"],
+  .card-back a[href*="directions.html"] {
+    min-height: 44px !important;
+    font-size: 13px !important;
+    padding: 12px !important;
+    margin-top: 8px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
 @media print { .topnav,.topbar,.toast,.gate-fs,.rsvp-screen { display: none !important; } .main-area { margin-left: 0 !important; } }
