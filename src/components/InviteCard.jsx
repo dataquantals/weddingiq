@@ -52,7 +52,13 @@ export function buildCardHTML(msg, theme, bgImg, guest, skipBack) {
       ${gn ? `<div style="font-family:var(--serif);font-size:13px;color:${ac};font-style:italic;margin-bottom:3px">Dear ${esc(gn)},</div>` : ''}
       ${msg ? `<div class="ic-msg" style="color:${tc};margin:0">${esc(msg)}</div>` : ''}
     </div>` : ''}
-    ${DESIGN.footer_verse ? `<div class="ic-verse" style="color:${sc}">${esc(DESIGN.footer_verse)}</div>` : ''}
+    ${qrToken ? `<div id="${qrId}" style="margin-top:12px;display:flex;justify-content:center"></div>` : ''}
+    ${qrToken ? `<div style="margin-top:8px;text-align:center">
+      <a href="./directions.html" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:linear-gradient(135deg,#C9A84C,#E8D5A3);color:#3D2B1A;text-decoration:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,0.1);transition:all 0.2s">
+        📍 Directions
+      </a>
+    </div>` : ''}
+    ${DESIGN.footer_verse ? `<div class="ic-verse" style="color:${sc};margin-top:12px">${esc(DESIGN.footer_verse)}</div>` : ''}
   </div>`
 
   // QR: RAF retry until element is in DOM

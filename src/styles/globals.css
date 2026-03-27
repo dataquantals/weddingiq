@@ -593,4 +593,33 @@ tr:hover td { background: var(--cream); }
   }
 }
 
+/* Front card directions button responsiveness */
+@media (max-width: 768px) {
+  .card-front a[href*="directions.html"] {
+    min-height: 44px !important;
+    font-size: 12px !important;
+    padding: 10px 20px !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-front a[href*="directions.html"] {
+    min-height: 48px !important;
+    font-size: 13px !important;
+    padding: 12px 24px !important;
+    margin-top: 10px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .card-front a[href*="directions.html"] {
+    font-size: 12px !important;
+    padding: 10px 20px !important;
+    min-height: 44px !important;
+  }
+}
+
 @media print { .topnav,.topbar,.toast,.gate-fs,.rsvp-screen { display: none !important; } .main-area { margin-left: 0 !important; } }
