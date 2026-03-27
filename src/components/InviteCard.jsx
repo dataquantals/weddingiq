@@ -131,12 +131,13 @@ export function buildCardHTML(msg, theme, bgImg, guest, skipBack) {
         <div class="cb-map-label">${mapLabel}</div>
         <div id="${backId}" style="height:140px;width:100%;background:#EDE8E0;border-radius:6px;overflow:hidden"></div>
         <a href="./directions.html" target="_blank" onclick="return true"
-          style="width:100%;padding:10px 12px;background:linear-gradient(135deg,#C9A84C,#E8D5A3);color:#3D2B1A;border:none;
-                 font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;
-                 display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;
-                 margin-top:8px;border-radius:6px;transition:all 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.1);
-                 min-height:40px;position:relative;z-index:10">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          style="width:100%;padding:12px 16px;background:linear-gradient(135deg,#C9A84C,#E8D5A3);color:#3D2B1A;border:none;
+                 font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;
+                 display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
+                 margin-top:10px;border-radius:8px;transition:all 0.2s;box-shadow:0 4px 12px rgba(0,0,0,0.15);
+                 min-height:48px;position:relative;z-index:100;text-transform:none;letter-spacing:0.3px;
+                 border:2px solid transparent;touch-action:manipulation;-webkit-tap-highlight-color:transparent">
+          <svg width="14" height="14" viewBox="0 0 12 12" fill="none" style="flex-shrink:0">
             <path d="M6 1L11 6L6 11" stroke="#3D2B1A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M1 6H11" stroke="#3D2B1A" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -144,11 +145,12 @@ export function buildCardHTML(msg, theme, bgImg, guest, skipBack) {
         </a>
         ${dirLat && dirLng ? `
         <a href="#" onclick="window.initBackCardMapNav(${dirLat}, ${dirLng}); return false"
-          style="width:100%;padding:8px 12px;background:linear-gradient(135deg,#7B5EA7,#9B7FC4);color:#fff;border:none;
-                 font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;cursor:pointer;
-                 display:flex;align-items:center;justify-content:center;gap:5px;text-decoration:none;
-                 margin-top:4px;border-radius:6px;transition:all 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.1);
-                 min-height:32px;position:relative;z-index:10">
+          style="width:100%;padding:10px 16px;background:linear-gradient(135deg,#7B5EA7,#9B7FC4);color:#fff;border:none;
+                 font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;
+                 display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;
+                 margin-top:6px;border-radius:8px;transition:all 0.2s;box-shadow:0 3px 8px rgba(0,0,0,0.12);
+                 min-height:44px;position:relative;z-index:100;text-transform:none;letter-spacing:0.2px;
+                 border:2px solid transparent;touch-action:manipulation;-webkit-tap-highlight-color:transparent">
           🗺️ Open in Maps App
         </a>` : ''}
       </div>

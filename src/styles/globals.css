@@ -497,16 +497,99 @@ tr:hover td { background: var(--cream); }
   animation: shimmer 1.5s infinite linear;
 }
 
-/* Mobile card button fixes */
-@media (max-width: 480px) {
-  .card-back a[onclick*="initBackCardMapNav"],
-  .card-back a[href*="directions.html"] {
-    min-height: 44px !important;
-    font-size: 13px !important;
-    padding: 12px !important;
-    margin-top: 8px !important;
+/* Responsive Card Layout */
+@media (max-width: 768px) {
+  .card-book {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    min-height: auto;
+  }
+  
+  .card-front {
+    min-height: 400px;
+  }
+  
+  .card-back {
+    border-left: none;
+    border-top: 2px solid rgba(201,168,76,.25);
+    min-height: 450px;
+  }
+  
+  .cb-map-wrap {
+    padding: 12px 16px !important;
+    margin-top: auto;
+  }
+  
+  .cb-map-wrap a {
+    min-height: 48px !important;
+    font-size: 14px !important;
+    padding: 14px 16px !important;
+    margin-top: 10px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    position: relative !important;
+    z-index: 100 !important;
+  }
+  
+  .cb-map-wrap a[href*="directions.html"] {
+    background: linear-gradient(135deg,#C9A84C,#E8D5A3) !important;
+    color: #3D2B1A !important;
+  }
+  
+  .cb-map-wrap a[onclick*="initBackCardMapNav"] {
+    background: linear-gradient(135deg,#7B5EA7,#9B7FC4) !important;
+    color: #fff !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .card-front {
+    min-height: 350px;
+    padding: 24px 20px !important;
+  }
+  
+  .card-back {
+    min-height: 400px;
+  }
+  
+  .cb-ornament-wrap {
+    padding: 12px 16px 8px !important;
+  }
+  
+  .cb-programme {
+    padding: 12px 16px !important;
+  }
+  
+  .cb-map-wrap {
+    padding: 10px 16px 16px !important;
+  }
+  
+  .cb-map-wrap a {
+    min-height: 52px !important;
+    font-size: 15px !important;
+    padding: 16px !important;
+    margin-top: 12px !important;
+    letter-spacing: 0.3px !important;
+  }
+  
+  .cb-map-label {
+    font-size: 10px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .card-back-inner {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 360px) {
+  .cb-map-wrap a {
+    font-size: 14px !important;
+    padding: 14px 12px !important;
+    min-height: 50px !important;
   }
 }
 
