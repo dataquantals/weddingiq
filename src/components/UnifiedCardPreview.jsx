@@ -312,68 +312,68 @@ export default function UnifiedCardPreview({
           }}>
 
             {/* QR Code block with Guest Details */}
-            {/* Functional Block: QR + Directions (Optimised for Mobile Visibility) */}
+            {/* Functional Item 1: Gate QR (Visible if token exists) */}
             {qrDataUrl && (
-              <div style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
-                {/* QR Image */}
-                <div style={{ textAlign: 'center' }}>
-                  <img
-                    src={qrDataUrl}
-                    alt="Gate QR Code"
-                    style={{ width: 85, height: 85, display: 'block', borderRadius: 6, border: `2px solid ${themeObj.acc}`, background: '#fff' }}
-                  />
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,.7)', marginTop: 5, fontFamily: 'var(--sans)', letterSpacing: '0.07em', textTransform: 'uppercase', fontWeight: 600 }}>
-                    🚪 Gate Pass
-                  </div>
+              <div style={{ padding: '12px 18px', textAlign: 'center', flexShrink: 0 }}>
+                <img
+                  src={qrDataUrl}
+                  alt="Gate QR Code"
+                  style={{ width: 85, height: 85, display: 'block', borderRadius: 6, border: `2px solid ${themeObj.acc}`, background: '#fff' }}
+                />
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.7)', marginTop: 5, fontFamily: 'var(--sans)', letterSpacing: '0.07em', textTransform: 'uppercase', fontWeight: 600 }}>
+                  🚪 Gate Pass
                 </div>
+              </div>
+            )}
 
-                {/* Divider */}
-                <div style={{ width: 1, height: 60, background: `${themeObj.acc}33` }} />
+            {/* Divider between QR and Directions */}
+            {qrDataUrl && bestAddress && (
+              <div style={{ width: 1, height: 60, background: `${themeObj.acc}33`, flexShrink: 0 }} />
+            )}
 
-                {/* Directions Button (Now immediately next to QR) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.45)', fontFamily: 'var(--sans)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
-                    Venue Details
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (!bestAddress) return
-                      const hasMultiple = ceremonyAddr && receptionAddr && !sameVenue
-                      if (hasMultiple) {
-                        setDirPicker('venue')
-                      } else {
-                        setDirPicker({
-                          address: bestAddress,
-                          label: ceremonyAddr ? '⛪ Ceremony' : receptionAddr ? '🥂 Reception' : '📍 Venue',
-                        })
-                      }
-                    }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 8,
-                      padding: '11px 18px',
-                      background: bestAddress ? (themeObj.acc || '#C9A84C') : 'rgba(255,255,255,0.12)',
-                      color: bestAddress ? (themeObj.txt || '#2D1540') : 'rgba(255,255,255,0.4)',
-                      border: 'none',
-                      borderRadius: 24,
-                      fontSize: 13, fontFamily: 'var(--sans)', fontWeight: 700,
-                      cursor: bestAddress ? 'pointer' : 'default',
-                      whiteSpace: 'nowrap',
-                      boxShadow: bestAddress ? '0 4px 12px rgba(0,0,0,0.3)' : 'none',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    📍 Get Directions
-                  </button>
-                  {ceremonyAddr && receptionAddr && !sameVenue ? (
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', fontFamily: 'var(--sans)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      2 venues available
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', fontFamily: 'var(--sans)', letterSpacing: '0.05em' }}>
-                      Tap for map + apps
-                    </div>
-                  )}
+            {/* Functional Item 2: Navigation (Visible if address exists) */}
+            {bestAddress && (
+              <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.45)', fontFamily: 'var(--sans)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Venue Directions
                 </div>
+                <button
+                  onClick={() => {
+                    const hasMultiple = ceremonyAddr && receptionAddr && !sameVenue
+                    if (hasMultiple) {
+                      setDirPicker('venue')
+                    } else {
+                      setDirPicker({
+                        address: bestAddress,
+                        label: ceremonyAddr ? '⛪ Ceremony' : receptionAddr ? '🥂 Reception' : '📍 Venue',
+                      })
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '11px 20px',
+                    background: themeObj.acc || '#C9A84C',
+                    color: themeObj.txt || '#2D1540',
+                    border: 'none',
+                    borderRadius: 24,
+                    fontSize: 13, fontFamily: 'var(--sans)', fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  📍 Get Directions
+                </button>
+                {ceremonyAddr && receptionAddr && !sameVenue ? (
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', fontFamily: 'var(--sans)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    2 venues available
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', fontFamily: 'var(--sans)', letterSpacing: '0.05em' }}>
+                    Tap for map + apps
+                  </div>
+                )}
               </div>
             )}
 
