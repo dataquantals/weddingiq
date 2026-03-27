@@ -3,7 +3,7 @@ import jsQR from 'jsqr'
 import { initials, playSound } from '../lib/helpers.js'
 
 function GatePhoto({ guest }) {
-  const sz = 'min(88vw, 320px)'
+  const sz = 'min(40vw, 140px)'
   const common = {
     width: sz, height: sz,
     borderRadius: '50%',
@@ -187,7 +187,9 @@ export default function GateScanner({ guests, onCheckIn, onClose }) {
 
   function stopCamera() {
     scanActive.current = false
-    streamRef.current?.getTracks().forEach(t => t.stop())
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+    }
   }
 
   function scanLoop() {
@@ -324,10 +326,14 @@ export default function GateScanner({ guests, onCheckIn, onClose }) {
           border-style: solid;
         }
       `}</style>
-      <div className="cam-wrap" style={{ maxHeight: '300px', minHeight: '300px' }}>
+      <div className="cam-wrap" style={{ 
+        maxHeight: (result || multiMatch) ? '120px' : '35vh', 
+        minHeight: (result || multiMatch) ? '120px' : '250px', 
+        transition: 'all 0.3s ease' 
+      }}>
         <video ref={videoRef} autoPlay playsInline muted />
         <canvas ref={canvasRef} style={{ display:'none' }} />
-        <div className="cam-overlay">
+        <div className="cam-overlay" style={{ transform: (result || multiMatch) ? 'scale(0.5)' : 'scale(1)', transition: 'all 0.3s ease' }}>
           {/* Scanner box */}
           <div style={{ position: 'relative', width: 220, height: 220 }}>
             {/* Corner brackets */}

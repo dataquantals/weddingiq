@@ -264,7 +264,12 @@ export default function App() {
     )
   }
 
-  if (status === 'loading' || cfgLoading) {
+  // Check if we have a project slug in URL
+  const urlSlug = window.location.pathname.replace(/^\//, '').split('/')[0].toLowerCase()
+  const hasProjectSlug = urlSlug && urlSlug !== 'user-home' && urlSlug !== '' && urlSlug.length >= 3
+  
+  // Skip main loading if we have a project slug - let the project-specific loading handle it
+  if ((status === 'loading' || cfgLoading) && !hasProjectSlug) {
     return (
       <div className="cfg-screen">
         <div style={{ textAlign:'center', padding:'60px 20px' }}>
@@ -292,10 +297,38 @@ export default function App() {
     return <Navigate to="/" replace />
   }
 
-  // Show project selection if user has projects but none selected and not creating a new one
+  // Check if we should redirect to user-home (only if no project slug in URL)
   if (status === 'authenticated' && projects && projects.length > 0 && !config && !creatingNew) {
-    window.location.href = '/user-home'
-    return null
+    // Only redirect if we're at root or user-home, not if we have a project slug
+    if (!urlSlug || urlSlug === 'user-home' || urlSlug === '') {
+      window.location.href = '/user-home'
+      return null
+    }
+    
+    // If we have a project slug but no config yet, show brief loading to prevent flickering
+    // This gives useConfig time to match the URL and select the project
+    if (hasProjectSlug) {
+      // Check if this slug matches any project (quick check)
+      const hasMatch = projects.some(p => {
+        const toSlugPart = (str) => (str || '').toLowerCase().replace(/\s+/g, '')
+        const g = toSlugPart(p.groom)
+        const b = toSlugPart(p.bride)
+        return urlSlug === g + 'and' + b || urlSlug === b + 'and' + g
+      })
+      
+      if (hasMatch && cfgLoading) {
+        // Show loading while config is still loading
+        return (
+          <div className="cfg-screen">
+            <div style={{ textAlign:'center', padding:'60px 20px' }}>
+              <div style={{ fontSize:48, marginBottom:16 }}>💍</div>
+              <div className="cfg-title">WeddingIQ</div>
+              <div className="cfg-sub">Loading your project...</div>
+            </div>
+          </div>
+        )
+      }
+    }
   }
 
   // First time user setup (no projects exist) OR creating a new project

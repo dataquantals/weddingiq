@@ -5,6 +5,7 @@ import CanvasEditor from '../components/CanvasEditor.jsx'
 import UnifiedCardPreview from '../components/UnifiedCardPreview.jsx'
 import { BORDER_PATTERNS } from '../lib/bordersGenerator.js'
 import { GENERATED_THEMES, findAnyTheme } from '../lib/themesGenerator.js'
+import Icon from '../components/Icon.jsx'
 
 const COPY_FIELDS = [
   { key:'headline',      lbl:'Headline tagline' },
@@ -672,8 +673,18 @@ Respond ONLY with the JSON. No markdown.`
         {/* Controls */}
         <div>
           <div className="ptabs">
-            {[['theme','🎨 Theme'],['palette','🎯 Palette'],['images','🖼 Images'],['borders','🖼 Borders'],['pages','📄 Pages'],['copy','✍️ Copy']].map(([id, lbl]) => (
-              <button key={id} className={`ptab ${activePanel === id ? 'active' : ''}`} onClick={() => setActivePanel(id)}>{lbl}</button>
+            {[
+              { id: 'theme', icon: 'designer', label: 'Theme' },
+              { id: 'palette', icon: 'palette', label: 'Palette' },
+              { id: 'images', icon: 'image', label: 'Images' },
+              { id: 'borders', icon: 'templates', label: 'Borders' },
+              { id: 'pages', icon: 'file', label: 'Pages' },
+              { id: 'copy', icon: 'edit', label: 'Copy' }
+            ].map(tab => (
+              <button key={tab.id} className={`ptab ${activePanel === tab.id ? 'active' : ''}`} onClick={() => setActivePanel(tab.id)}>
+                <Icon name={tab.icon} size={16} style={{ marginRight: 6 }} />
+                {tab.label}
+              </button>
             ))}
           </div>
 

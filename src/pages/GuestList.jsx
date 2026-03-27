@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import Papa from 'papaparse'
 import { initials, badgeClass } from '../lib/helpers.js'
 import { uploadPhoto } from '../lib/supabase.js'
+import Icon from '../components/Icon.jsx'
 
 /**
  * Convert any Google Drive sharing/view/thumbnail URL into a direct-load image URL.
@@ -152,7 +153,7 @@ function GuestModal({ guest, onSave, onClose, baseUrl }) {
           <div className="photo-circle" onClick={() => fileRef.current.click()} style={{ cursor:'pointer', flexShrink:0 }}>
             {photoPreview
               ? <img src={photoPreview} alt="" onError={() => setPhotoPreview(null)} />
-              : <span style={{ fontSize:22, color:'var(--muted)' }}>📷</span>}
+              : <Icon name="camera" size={22} style={{ color:'var(--muted)' }} />}
           </div>
           <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
             onChange={e => {
@@ -168,7 +169,10 @@ function GuestModal({ guest, onSave, onClose, baseUrl }) {
             <div style={{ fontSize:11, color:'var(--muted)', lineHeight:1.6, marginBottom:6 }}>
               Shown to doorman when QR is scanned.
             </div>
-            <button className="btn btn-o btn-sm" onClick={() => fileRef.current.click()}>⬆ Upload File</button>
+            <button className="btn btn-o btn-sm" onClick={() => fileRef.current.click()}>
+              <Icon name="upload" size={14} style={{ marginRight: 4 }} />
+              Upload File
+            </button>
 
             {/* URL field — pre-filled from photo_url (e.g. imported from CSV / Google Drive) */}
             <div style={{ marginTop:8 }}>
@@ -378,19 +382,23 @@ export default function GuestList({ guests, onAdd, onEdit, onDelete, onViewCard,
           </span>
         </div>
         <div style={{ display:'flex', gap:8 }}>
-          <button className="btn btn-o btn-sm" onClick={() => csvRef.current.click()}>📥 Import CSV</button>
+          <button className="btn btn-o btn-sm" onClick={() => csvRef.current.click()}>
+            <Icon name="upload" size={14} style={{ marginRight: 4 }} />
+            Import CSV
+          </button>
           <input ref={csvRef} type="file" accept=".csv" style={{ display:'none' }} onChange={handleCSV} />
           <button className="btn btn-p btn-sm" onClick={() => { setEditGuest(null); setShowModal(true) }}>+ Add Guest</button>
           <button className="btn btn-o btn-sm" style={{ color:'var(--err)', borderColor:'rgba(196,56,56,.3)' }}
             onClick={handleClearAll} disabled={!guests.length}>
-            🗑 Remove All
+            <Icon name="trash" size={14} style={{ marginRight: 4 }} />
+            Remove All
           </button>
         </div>
       </div>
 
       <div style={{ display:'flex', gap:9, marginBottom:14, flexWrap:'wrap' }}>
         <div className="search-wrap" style={{ flex:1, minWidth:180 }}>
-          <span className="search-icon">🔍</span>
+          <Icon name="search" size={16} className="search-icon" />
           <input type="text" placeholder="Search name, email, phone..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div style={{ display:'flex', gap:5 }}>

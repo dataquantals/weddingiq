@@ -119,10 +119,14 @@ export default function GateView({ guests, config, onCheckIn, onClose }) {
       </div>
 
       {/* Camera */}
-      <div className="cam-wrap">
+      <div className="cam-wrap" style={{ 
+        maxHeight: result ? '120px' : '35vh', 
+        minHeight: result ? '120px' : '250px', 
+        transition: 'all 0.3s ease' 
+      }}>
         <video ref={videoRef} autoPlay playsInline muted />
         <canvas ref={canvasRef} style={{ display:'none' }} />
-        <div className="cam-overlay">
+        <div className="cam-overlay" style={{ transform: result ? 'scale(0.5)' : 'scale(1)', transition: 'all 0.3s ease' }}>
           <div className="scan-frame">
             <div className="scan-line" />
             <div className="scan-corner-tr" />

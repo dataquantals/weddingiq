@@ -1,3 +1,7 @@
+import React from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import Icon from './Icon.jsx'
+
 export default function Sidebar({ page, onNav, wedding, onGate, user, onSignOut, onHome, isOpen }) {
   const nav = (id) => onNav(id)
   
@@ -15,35 +19,35 @@ export default function Sidebar({ page, onNav, wedding, onGate, user, onSignOut,
 
         <div className="sb-sect">MAIN</div>
         {[
-          { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-          { id: 'guests',    icon: '👥', label: 'Guest List' },
-          { id: 'designer',  icon: '🎨', label: 'Card Designer' },
-          { id: 'templates', icon: '🖼️', label: 'Templates' },
-          { id: 'cards',     icon: '💌', label: 'Invite Cards' },
+          { id: 'dashboard', icon: 'dashboard', label: 'Dashboard' },
+          { id: 'guests',    icon: 'guests', label: 'Guest List' },
+          { id: 'designer',  icon: 'designer', label: 'Card Designer' },
+          { id: 'templates', icon: 'templates', label: 'Templates' },
+          { id: 'cards',     icon: 'cards', label: 'Invite Cards' },
         ].map(n => (
           <div key={n.id} className={`sb-item ${page === n.id ? 'active' : ''}`} onClick={() => nav(n.id)}>
-            <span className="sb-icon">{n.icon}</span> {n.label}
+            <Icon name={n.icon} size={18} className="sb-icon" /> {n.label}
           </div>
         ))}
 
         <div className="sb-sect">PLANNING</div>
         {[
-           { id: 'venues', icon: '�', label: 'Venues & Directions' },
+           { id: 'venues', icon: 'map', label: 'Venues & Directions' },
         ].map(n => (
           <div key={n.id} className={`sb-item ${page === n.id ? 'active' : ''}`} onClick={() => nav(n.id)}>
-            <span className="sb-icon">{n.icon}</span> {n.label}
+            <Icon name={n.icon} size={18} className="sb-icon" /> {n.label}
           </div>
         ))}
 
         <div className="sb-sect">OPERATIONS</div>
         <div className="sb-item" onClick={onGate}>
-          <span className="sb-icon">🚪</span> Gate Check-In
+          <Icon name="check" size={18} className="sb-icon" /> Gate Check-In
         </div>
         <div className={`sb-item ${page === 'settings' ? 'active' : ''}`} onClick={() => nav('settings')}>
-          <span className="sb-icon">⚙️</span> Settings
+          <Icon name="settings" size={18} className="sb-icon" /> Settings
         </div>
         <div className="sb-item" onClick={onSignOut} style={{ color: 'var(--muted)' }}>
-          <span className="sb-icon">🚪</span> Sign Out
+          <Icon name="arrowLeft" size={18} className="sb-icon" /> Sign Out
         </div>
       </div>
     </div>

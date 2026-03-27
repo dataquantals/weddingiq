@@ -111,20 +111,16 @@ nav {
   pointer-events: none;
 }
 
-/* Floating ornaments */
-.orb {
-  position: absolute; border-radius: 50%;
-  background: radial-gradient(circle, rgba(201,168,76,.18), transparent);
-  animation: orbFloat 8s ease-in-out infinite;
+/* Radial gradient background replacing orbs */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -60%);
+  width: 900px; height: 900px;
+  background: radial-gradient(ellipse, rgba(253,248,240,0.15) 0%, rgba(253,248,240,0.05) 40%, transparent 70%);
   pointer-events: none;
-}
-.orb-1 { width:320px; height:320px; top:-80px; left:-100px; animation-delay:0s; }
-.orb-2 { width:200px; height:200px; bottom:100px; right:-60px; animation-delay:-3s; }
-.orb-3 { width:140px; height:140px; top:30%; right:8%; animation-delay:-6s; }
-
-@keyframes orbFloat {
-  0%,100% { transform:translateY(0) scale(1); }
-  50%      { transform:translateY(-28px) scale(1.04); }
+  z-index: 0;
 }
 
 /* Decorative gold lines */

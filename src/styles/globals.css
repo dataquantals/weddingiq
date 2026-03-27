@@ -5,7 +5,7 @@
   --ink: #1A1118; --muted: #6B5F72;
   --border: rgba(201,168,76,.22); --surface: rgba(255,255,255,.9);
   --ok: #2D7A4F; --err: #9B2C2C;
-  --serif: 'Cormorant Garamond', serif;
+  --serif: 'Cormorant Garamond', 'Garamond', 'Georgia', serif;
   --sans: 'DM Sans', sans-serif;
   --fell: 'IM Fell English', serif;
   --r-md: 8px; --r-lg: 12px; --r-xl: 16px;
@@ -161,6 +161,8 @@ body { font-family: var(--sans); background: var(--cream); color: var(--ink); mi
 
 /* Buttons */
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--r-md); border: none; font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; }
+.btn:active { transform: scale(0.97); transition: transform 80ms; }
+.btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .btn-p { background: var(--plum); color: #fff; } .btn-p:hover { background: var(--plum-m); }
 .btn-g { background: var(--gold); color: #fff; } .btn-g:hover { background: var(--gold-d); }
 .btn-o { background: transparent; color: var(--plum); border: 1px solid var(--border); } .btn-o:hover { background: var(--cream); }
@@ -250,14 +252,14 @@ tr:hover td { background: var(--cream); }
 /* Invite card */
 .ic-wrap { min-height: 480px; border-radius: 14px; padding: 32px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; transition: all .4s; }
 .ic-ornament { font-size: 28px; margin-bottom: 10px; line-height: 1; }
-.ic-hosts { font-family: var(--serif); font-size: 14px; font-style: italic; margin-bottom: 3px; }
+.ic-hosts { font-family: var(--serif); font-size: 10px; font-style: italic; margin-bottom: 3px; letter-spacing: 0.1em; }
 .ic-tag { font-family: var(--fell); font-size: 12px; font-style: italic; margin-bottom: 12px; }
-.ic-names { font-family: var(--serif); font-size: 38px; font-weight: 600; line-height: 1.05; }
-.ic-amp { font-family: var(--serif); font-size: 26px; font-style: italic; display: block; margin: 3px 0; line-height: 1; }
+.ic-names { font-family: var(--serif); font-size: 50px; font-weight: 600; line-height: 1.05; }
+.ic-amp { font-family: var(--serif); font-size: 34px; font-style: italic; display: block; margin: 3px 0; line-height: 1; }
 .ic-date { font-family: var(--serif); font-size: 15px; margin: 12px 0 3px; }
 .ic-venue { font-size: 12px; opacity: .75; margin-bottom: 10px; }
 .ic-msg { font-family: var(--serif); font-size: 12.5px; font-style: italic; line-height: 1.7; max-width: 300px; margin: 8px auto; }
-.ic-verse { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; opacity: .6; margin-top: 12px; }
+.ic-verse { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; opacity: .6; margin-top: 12px; }
 .ic-hl { position: absolute; top: 10px; right: 10px; padding: 3px 9px; border-radius: 20px; font-style: italic; font-family: var(--serif); font-size: 10px; backdrop-filter: blur(4px); }
 .ic-divline { height: 1px; width: 90px; margin: 8px auto; background: linear-gradient(90deg,transparent,currentColor,transparent); opacity: .4; }
 .ic-dot-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 6px 0; }
@@ -362,7 +364,7 @@ tr:hover td { background: var(--cream); }
   font-weight: 500;
   margin-bottom: 6px;
 }
-.cb-map { height: 140px; width: 100%; filter: sepia(20%) contrast(0.9); border-radius: 6px; }
+.cb-map { height: 140px; width: 100%; filter: hue-rotate(280deg) saturate(0.8) brightness(1.1); border-radius: 6px; }
 .cb-footer {
   padding: 6px 18px 14px;
   text-align: center;
@@ -426,8 +428,13 @@ tr:hover td { background: var(--cream); }
 .toast.err { background: var(--err); }
 
 /* RSVP screen */
-.rsvp-screen { position: fixed; inset: 0; z-index: 8000; background: linear-gradient(160deg,#F0D8E5,#E0C8DC,#C8B4D8); display: flex; align-items: center; justify-content: center; padding: 24px; }
-.rsvp-card { background: #fff; border-radius: 20px; padding: 32px; max-width: 400px; width: 100%; box-shadow: 0 24px 60px rgba(74,31,92,.2); }
+.rsvp-screen { position: fixed; inset: 0; z-index: 8000; background: linear-gradient(160deg, var(--cream), #EDE0F0); display: flex; align-items: center; justify-content: center; padding: 24px; overflow: hidden; }
+.rsvp-screen::before {
+  content: ''; position: absolute; inset: 0; z-index: 0; opacity: 0.25; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 900' preserveAspectRatio='xMidYMid slice' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 450 Q360 200 720 450 Q1080 700 1440 450' stroke='%23C9A84C' stroke-width='0.6'/%3E%3Cpath d='M0 400 Q360 150 720 400 Q1080 650 1440 400' stroke='%23C9A84C' stroke-width='0.4'/%3E%3Ccircle cx='720' cy='450' r='300' stroke='%23C9A84C' stroke-width='0.4'/%3E%3Ccircle cx='720' cy='450' r='480' stroke='%23C9A84C' stroke-width='0.25'/%3E%3C/svg%3E");
+  background-size: cover; background-position: center;
+}
+.rsvp-card { background: #fff; border-radius: 20px; padding: 32px; max-width: 400px; width: 100%; box-shadow: 0 24px 60px rgba(74,31,92,.2); position: relative; z-index: 1; }
 .rsvp-title { font-family: var(--serif); font-size: 26px; font-weight: 600; color: var(--plum); margin-bottom: 4px; }
 
 /* Venues & Directions */
@@ -441,5 +448,53 @@ tr:hover td { background: var(--cream); }
 @keyframes spin     { to{transform:rotate(360deg)} }
 @keyframes slideUp  { from{transform:translateY(18px);opacity:0} to{transform:translateY(0);opacity:1} }
 @keyframes scanLine { 0%,100%{top:15%;opacity:.8} 50%{top:85%;opacity:1} }
+@keyframes fadeUp   { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+@keyframes shimmer  { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+
+/* Task 1: Gate Feature List Classes */
+.gate-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.gate-list-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(45,122,79,.2);
+  border: 1px solid rgba(45,122,79,.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #7FFFA9;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.gate-list-text {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Task 2: Invite Animations */
+.invite-outer {
+  animation: fadeUp 350ms ease-out forwards;
+}
+.invite-card-wrap {
+  opacity: 0;
+  animation: fadeUp 350ms ease-out 150ms forwards;
+}
+
+/* Task 3: Shimmer Effect */
+.shimmer-loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,.15), transparent);
+  animation: shimmer 1.5s infinite linear;
+}
 
 @media print { .topnav,.topbar,.toast,.gate-fs,.rsvp-screen { display: none !important; } .main-area { margin-left: 0 !important; } }

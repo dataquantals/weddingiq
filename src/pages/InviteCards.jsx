@@ -82,6 +82,8 @@ function CardModal({ guest, design, theme, bgImage, config, onClose, baseUrl, to
   const shareUrl  = `${baseUrl}?invite=${guest.qr_token}`
   const shareTitle = `${config?.bride || 'Our'} & ${config?.groom || 'Wedding'} Invite`
   const shareText  = `Hi ${guest.name || 'friend'}! Here's your personalised wedding invite.`
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`
+  const emailBody = encodeURIComponent(`${shareText}\n\n${shareUrl}`)
 
   // Sync globals
   useEffect(() => {
@@ -147,10 +149,14 @@ function CardModal({ guest, design, theme, bgImage, config, onClose, baseUrl, to
         <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', marginBottom:14 }}>
           <input type="text" readOnly value={shareUrl}
             style={{ flex:1, fontSize:11, background:'var(--cream)', border:'1px solid var(--border)', borderRadius:8, padding:'7px 11px', color:'var(--muted)', minWidth:140 }} />
-          <button className="btn btn-o btn-sm" onClick={() => navigator.clipboard.writeText(shareUrl)}>Copy Link</button>
-          <button className="btn btn-g btn-sm" onClick={() => window.print()}>🖨️ Print</button>
-          <button className="btn btn-g btn-sm" onClick={shareCard} disabled={sharing}>
-            {sharing ? <>Preparing...</> : '📤 Share'}
+          <button className="btn btn-o btn-sm" onClick={() => { navigator.clipboard.writeText(shareUrl); toast?.('Link copied!', 'ok'); }}>Copy Link</button>
+        </div>
+        <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', marginBottom:14 }}>
+          <a className="btn btn-g btn-sm" href={whatsappUrl} target="_blank" rel="noreferrer" style={{ background: '#25D366', color: '#fff', borderColor: '#25D366' }}>📱 WhatsApp</a>
+          <a className="btn btn-o btn-sm" href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${emailBody}`}>✉️ Email</a>
+          <button className="btn btn-o btn-sm" onClick={() => window.print()}>🖨️ Print</button>
+          <button className="btn btn-p btn-sm" onClick={shareCard} disabled={sharing}>
+            {sharing ? <>Preparing...</> : '🖼️ Share Image'}
           </button>
         </div>
         <div style={{ fontSize:11.5, color:'var(--muted)', marginBottom:16, lineHeight:1.6 }}>

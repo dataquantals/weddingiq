@@ -3,6 +3,7 @@ import { THEMES, IMG_PACKS } from '../lib/constants.js'
 import { fmtDate } from '../lib/helpers.js'
 import UnifiedCardPreview from '../components/UnifiedCardPreview.jsx'
 import MapAddressPicker from '../components/MapAddressPicker.jsx'
+import Icon from '../components/Icon.jsx'
 
 // ─────────────────────────────────────────────
 // Section wrapper for visual grouping
@@ -58,9 +59,9 @@ export default function EditWedding({
   )
 
   const TABS = [
-    { id: 'details', label: '📋 Details' },
-    { id: 'card',    label: '🎨 Card Design' },
-    { id: 'preview', label: '💌 Card Preview' },
+    { id: 'details', icon: 'list', label: 'Details' },
+    { id: 'card',    icon: 'designer', label: 'Card Design' },
+    { id: 'preview', icon: 'cards', label: 'Card Preview' },
   ]
 
   const COPY_FIELDS = [
@@ -94,7 +95,10 @@ export default function EditWedding({
       <div className="ptabs" style={{ marginBottom: 20 }}>
         {TABS.map(t => (
           <button key={t.id} className={`ptab ${activeTab === t.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(t.id)}>{t.label}</button>
+            onClick={() => setActiveTab(t.id)}>
+            <Icon name={t.icon} size={16} style={{ marginRight: 6 }} />
+            {t.label}
+          </button>
         ))}
       </div>
 

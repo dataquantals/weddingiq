@@ -11,7 +11,7 @@ export default function Landing({ user, onAuth, toast }) {
     // Don't redirect if we're in the React app (e.g., after project selection)
     if (window.location.pathname === '/') {
       window.location.href =
-        window.location.href.split('/').slice(0, -1).join('/') + '/user-home.html';
+        window.location.href.split('/').slice(0, -1).join('/') + '/user-home';
     }
   };
 
@@ -312,25 +312,25 @@ export default function Landing({ user, onAuth, toast }) {
         A dedicated fullscreen page optimised for any phone. No app. No login. Just send the link, bookmark it, and scan all night.
       </p>
       <ul style={{"listStyle":"none","display":"flex","flexDirection":"column","gap":"14px"}}>
-        <li style={{"display":"flex","alignItems":"flex-start","gap":"12px"}}>
-          <span style={{"width":"20px","height":"20px","borderRadius":"50%","background":"rgba(45,122,79,.2)","border":"1px solid rgba(45,122,79,.4)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"10px","color":"#7FFFA9","flexShrink":"0","marginTop":"1px"}}>✓</span>
-          <span style={{"fontSize":"14px","color":"var(--muted)","lineHeight":"1.6"}}>Live camera QR scanning with animated viewfinder</span>
+        <li className="gate-list-item">
+          <span className="gate-list-icon">✓</span>
+          <span className="gate-list-text">Live camera QR scanning with animated viewfinder</span>
         </li>
-        <li style={{"display":"flex","alignItems":"flex-start","gap":"12px"}}>
-          <span style={{"width":"20px","height":"20px","borderRadius":"50%","background":"rgba(45,122,79,.2)","border":"1px solid rgba(45,122,79,.4)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"10px","color":"#7FFFA9","flexShrink":"0","marginTop":"1px"}}>✓</span>
-          <span style={{"fontSize":"14px","color":"var(--muted)","lineHeight":"1.6"}}>Large guest photo for face verification</span>
+        <li className="gate-list-item">
+          <span className="gate-list-icon">✓</span>
+          <span className="gate-list-text">Large guest photo for face verification</span>
         </li>
-        <li style={{"display":"flex","alignItems":"flex-start","gap":"12px"}}>
-          <span style={{"width":"20px","height":"20px","borderRadius":"50%","background":"rgba(45,122,79,.2)","border":"1px solid rgba(45,122,79,.4)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"10px","color":"#7FFFA9","flexShrink":"0","marginTop":"1px"}}>✓</span>
-          <span style={{"fontSize":"14px","color":"var(--muted)","lineHeight":"1.6"}}>Audio chime on success, warning tone for duplicates</span>
+        <li className="gate-list-item">
+          <span className="gate-list-icon">✓</span>
+          <span className="gate-list-text">Audio chime on success, warning tone for duplicates</span>
         </li>
-        <li style={{"display":"flex","alignItems":"flex-start","gap":"12px"}}>
-          <span style={{"width":"20px","height":"20px","borderRadius":"50%","background":"rgba(45,122,79,.2)","border":"1px solid rgba(45,122,79,.4)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"10px","color":"#7FFFA9","flexShrink":"0","marginTop":"1px"}}>✓</span>
-          <span style={{"fontSize":"14px","color":"var(--muted)","lineHeight":"1.6"}}>Live stats bar — total, checked in, remaining, rate</span>
+        <li className="gate-list-item">
+          <span className="gate-list-icon">✓</span>
+          <span className="gate-list-text">Live stats bar — total, checked in, remaining, rate</span>
         </li>
-        <li style={{"display":"flex","alignItems":"flex-start","gap":"12px"}}>
-          <span style={{"width":"20px","height":"20px","borderRadius":"50%","background":"rgba(45,122,79,.2)","border":"1px solid rgba(45,122,79,.4)","display":"flex","alignItems":"center","justifyContent":"center","fontSize":"10px","color":"#7FFFA9","flexShrink":"0","marginTop":"1px"}}>✓</span>
-          <span style={{"fontSize":"14px","color":"var(--muted)","lineHeight":"1.6"}}>Manual token input fallback when camera unavailable</span>
+        <li className="gate-list-item">
+          <span className="gate-list-icon">✓</span>
+          <span className="gate-list-text">Manual token input fallback when camera unavailable</span>
         </li>
       </ul>
       <div style={{"marginTop":"36px"}}>
