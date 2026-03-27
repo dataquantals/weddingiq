@@ -2,32 +2,85 @@ import React, { useEffect, useState } from 'react';
 import AuthScreen from './AuthScreen.jsx';
 import '../styles/landing.css';
 
+// ─── SVG Icons ───
+const IconRing = () => (
+  <svg viewBox="0 0 22 22" fill="none" stroke="#C9A84C" strokeWidth="1.5" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/>
+    <circle cx="11" cy="11" r="3"/>
+    <path d="M11 3 L11 1M11 19 L11 21M3 11L1 11M19 11L21 11" strokeLinecap="round"/>
+  </svg>
+);
+const IconQR = () => (
+  <svg viewBox="0 0 22 22" fill="none" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round">
+    <rect x="2" y="2" width="7" height="7" rx="1.5"/>
+    <rect x="13" y="2" width="7" height="7" rx="1.5"/>
+    <rect x="2" y="13" width="7" height="7" rx="1.5"/>
+    <path d="M13 13h2M17 13h2M19 13v2M19 17v2M17 19h-2M15 19v-2M15 17h-2"/>
+  </svg>
+);
+const IconUser = () => (
+  <svg viewBox="0 0 22 22" fill="none" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round">
+    <circle cx="11" cy="8" r="4"/>
+    <path d="M3 19c0-4 3.6-7 8-7s8 3 8 7"/>
+  </svg>
+);
+const IconSync = () => (
+  <svg viewBox="0 0 22 22" fill="none" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round">
+    <path d="M4 11a7 7 0 0 1 13-3.5M18 11a7 7 0 0 1-13 3.5"/>
+    <path d="M17 4l1 3.5-3.5 1M5 18l-1-3.5 3.5-1"/>
+  </svg>
+);
+const IconTable = () => (
+  <svg viewBox="0 0 22 22" fill="none" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round">
+    <rect x="2" y="4" width="18" height="14" rx="2"/>
+    <path d="M2 9h18M7 9v9"/>
+  </svg>
+);
+const IconCheck = () => (
+  <svg viewBox="0 0 10 10" fill="none" stroke="#7FFFA9" strokeWidth="1.5" strokeLinecap="round">
+    <path d="M2 5l2.5 2.5L8 3"/>
+  </svg>
+);
+const IconArrow = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <path d="M3 8h10M9 4l4 4-4 4"/>
+  </svg>
+);
+const IconScan = () => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <rect x="1" y="1" width="5" height="5" rx="1"/>
+    <rect x="10" y="1" width="5" height="5" rx="1"/>
+    <rect x="1" y="10" width="5" height="5" rx="1"/>
+    <path d="M10 10h2M14 10v2M14 14h-2M10 14v-2M12 12h2"/>
+  </svg>
+);
+const IconDiamond = () => (
+  <svg viewBox="0 0 22 22" fill="none" stroke="#C9A84C" strokeWidth="1.4" strokeLinejoin="round">
+    <path d="M11 3L20 9 11 19 2 9Z"/>
+    <path d="M2 9h18M7 9l4-6 4 6"/>
+  </svg>
+);
+
 export default function Landing({ user, onAuth, toast }) {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState('signin');
 
   const redirectToUserHome = () => {
-    // Only redirect to static HTML if we're actually on the landing page
-    // Don't redirect if we're in the React app (e.g., after project selection)
     if (window.location.pathname === '/') {
-      window.location.href =
-        window.location.href.split('/').slice(0, -1).join('/') + '/user-home';
+      window.location.href = window.location.href.split('/').slice(0, -1).join('/') + '/user-home';
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      redirectToUserHome();
-    }
-  }, [user]);
+  useEffect(() => { if (user) redirectToUserHome(); }, [user]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') }),
-      { threshold: 0.12 }
+    // Scroll reveal
+    const io = new IntersectionObserver(
+      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+      { threshold: 0.1 }
     );
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    return () => observer.disconnect();
+    document.querySelectorAll('.lp-reveal').forEach(el => io.observe(el));
+    return () => { io.disconnect(); };
   }, []);
 
   const openAuth = (e, mode) => {
@@ -37,400 +90,397 @@ export default function Landing({ user, onAuth, toast }) {
   };
 
   return (
-    <div className="landing-page">
-      
+    <div className="lp">
 
-{/*  ── NAVIGATION ──  */}
-<nav>
-  <div className="nav-brand">
-    <img src="/Assets/wedding%20logo.png" alt="WeddingIQ" style={{ height: 85, width: 'auto', objectFit: 'contain', display: 'block' }} />
-  </div>
-  <ul className="nav-links">
-    <li><a href="#features">Features</a></li>
-    <li><a href="#how">How it works</a></li>
-    <li><a href="#gate">Gate Scanner</a></li>
-  </ul>
-  <div className="nav-cta">
-    <a onClick={(e) => openAuth(e, "signin")} href="#" className="btn-nav-ghost">Sign in</a>
-    <a onClick={(e) => openAuth(e, "signup")} href="#" className="btn-nav-solid">Get started</a>
-  </div>
-</nav>
-
-{/*  ── HERO ──  */}
-<section className="hero">
-  <div className="orb orb-1"></div>
-  <div className="orb orb-2"></div>
-  <div className="orb orb-3"></div>
-  <div className="hero-lines">
-    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" fill="none">
-      <path d="M0 450 Q360 200 720 450 Q1080 700 1440 450" stroke="#C9A84C" strokeWidth="0.6"/>
-      <path d="M0 400 Q360 150 720 400 Q1080 650 1440 400" stroke="#C9A84C" strokeWidth="0.4"/>
-      <circle cx="720" cy="450" r="300" stroke="#C9A84C" strokeWidth="0.4"/>
-      <circle cx="720" cy="450" r="480" stroke="#C9A84C" strokeWidth="0.25"/>
-    </svg>
-  </div>
-
-  <div className="hero-eyebrow">
-    <div className="eyebrow-dot"></div>
-    AI-Powered Wedding Management
-  </div>
-
-  <h1 className="hero-title">
-    Every guest<br />
-    <em>perfectly</em> welcomed
-    <span className="accent-line">on your big day</span>
-  </h1>
-
-  <p className="hero-sub">
-    From personalised AI invitation cards to real-time QR check-in at the gate — WeddingIQ handles your entire guest journey with elegance.
-  </p>
-
-  <div className="hero-actions">
-    <a onClick={(e) => openAuth(e, "signin")} href="#" className="btn-primary">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="#1A0E08" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-      Launch WeddingIQ
-    </a>
-    <a href="gate.html" className="btn-secondary">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-        <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-        <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
-        <path d="M9 9H11M11 9H14M14 9V11M14 11V14M14 14H11M11 14V11M11 11H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-      </svg>
-      Open Gate Scanner
-    </a>
-  </div>
-
-  <div className="hero-trust">
-    <div className="trust-item">
-      <span className="trust-num">360°</span>
-      <span className="trust-label">Guest Journey</span>
-    </div>
-    <div className="trust-sep"></div>
-    <div className="trust-item">
-      <span className="trust-num">AI</span>
-      <span className="trust-label">Personalised Cards</span>
-    </div>
-    <div className="trust-sep"></div>
-    <div className="trust-item">
-      <span className="trust-num">QR</span>
-      <span className="trust-label">Gate Check-in</span>
-    </div>
-    <div className="trust-sep"></div>
-    <div className="trust-item">
-      <span className="trust-num">Live</span>
-      <span className="trust-label">Supabase Sync</span>
-    </div>
-  </div>
-
-  {/*  Phone mockup  */}
-  <div className="hero-phone">
-    <div className="phone-shell">
-      <div className="phone-notch"></div>
-      <div className="phone-screen">
-        <div className="phone-topbar">
-          <span>🚪 Gate Scanner</span>
-          <span className="phone-topbar-time">20:14</span>
+      {/* ── NAV ── */}
+      <nav className="lp-nav">
+        <div className="lp-nav-brand">
+          <img src="/Assets/wedding%20logo.png" alt="WeddingIQ" style={{ height: 45, width: 'auto', objectFit: 'contain', display: 'block' }} />
         </div>
-        <div className="phone-cam">
-          <div className="scan-box-mini">
-            <div className="s-tl"></div><div className="s-tr"></div>
-            <div className="s-bl"></div><div className="s-br"></div>
-            <div className="scan-mini-line"></div>
-          </div>
+        <ul className="lp-nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#gate">Gate Scanner</a></li>
+        </ul>
+        <div className="lp-nav-cta">
+          <a href="#" onClick={e => openAuth(e,'signin')} className="lp-btn-ghost">Sign in</a>
+          <a href="#" onClick={e => openAuth(e,'signup')} className="lp-btn-solid">Get started</a>
         </div>
-        <div className="phone-result">
-          <div className="phone-avatar">
-            PM
-            <div className="phone-check">✓</div>
-          </div>
-          <div className="phone-name">Priya Mumba</div>
-          <div className="phone-badge">✓ Checked in at 20:14</div>
-          <div className="phone-rows">
-            <div className="phone-row"><span className="pr-l">Table</span><span className="pr-v">4</span></div>
-            <div className="phone-row"><span className="pr-l">RSVP</span><span className="pr-v-ok">Confirmed</span></div>
-            <div className="phone-row"><span className="pr-l">Check-in</span><span className="pr-v-ok">20:14</span></div>
-          </div>
-        </div>
-        <div className="phone-stats">
-          <div className="ps-cell"><div className="ps-v">120</div><div className="ps-l">Total</div></div>
-          <div className="ps-cell"><div className="ps-v" style={{"color":"#7FFFA9"}}>48</div><div className="ps-l">In</div></div>
-          <div className="ps-cell"><div className="ps-v" style={{"color":"#E8D5A3"}}>72</div><div className="ps-l">Left</div></div>
-          <div className="ps-cell"><div className="ps-v" style={{"color":"rgba(255,255,255,.45)"}}>40%</div><div className="ps-l">Rate</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+      </nav>
 
-{/*  ── FEATURES ──  */}
-<section className="features" id="features">
-  <div className="features-header reveal">
-    <div className="section-eyebrow"><div className="eyebrow-line"></div> Everything you need <div className="eyebrow-line"></div></div>
-    <h2 className="section-title">Designed for the perfect day</h2>
-    <p className="section-sub">Every feature built around one goal — making your guests feel seen, welcomed, and celebrated.</p>
-  </div>
-
-  <div className="features-grid">
-
-    <div className="feature-card featured reveal">
-      <div className="feature-icon">
-        <svg viewBox="0 0 22 22" fill="none">
-          <path d="M11 2L13 7H18L14 10.5L15.5 16L11 13L6.5 16L8 10.5L4 7H9L11 2Z" stroke="#C9A84C" strokeWidth="1.5" strokeLinejoin="round"/>
-        </svg>
-      </div>
-      <div className="feature-title">AI Invite Card Designer</div>
-      <div className="feature-desc">
-        DeepSeek AI generates a unique, heartfelt personalised message for every single guest. Choose from 6 curated themes — Mughal Gold, Midnight Noir, Sage Garden and more — then customise every line of copy with live preview.
-      </div>
-      <div className="feature-tag">DeepSeek AI · 6 themes · Bulk generation</div>
-    </div>
-
-    <div className="feature-card reveal">
-      <div className="feature-icon">
-        <svg viewBox="0 0 22 22" fill="none">
-          <rect x="2" y="2" width="8" height="8" rx="1.5" stroke="#C9A84C" strokeWidth="1.5"/>
-          <rect x="12" y="2" width="8" height="8" rx="1.5" stroke="#C9A84C" strokeWidth="1.5"/>
-          <rect x="2" y="12" width="8" height="8" rx="1.5" stroke="#C9A84C" strokeWidth="1.5"/>
-          <path d="M12 12H14M14 12H20M20 12V14M20 14V20M20 20H14M14 20V14M14 14H12" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
-      <div className="feature-title">QR Code Check-in</div>
-      <div className="feature-desc">Every invite carries a unique QR code. The doorman scans it in seconds — no lists, no confusion.</div>
-      <div className="feature-tag">Auto-generated · Per guest</div>
-    </div>
-
-    <div className="feature-card reveal">
-      <div className="feature-icon">
-        <svg viewBox="0 0 22 22" fill="none">
-          <circle cx="11" cy="8" r="4" stroke="#C9A84C" strokeWidth="1.5"/>
-          <path d="M3 19C3 15.134 6.134 12 10 12H12C15.866 12 19 15.134 19 19" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
-      <div className="feature-title">Guest Photo Verification</div>
-      <div className="feature-desc">Admin uploads or guests self-upload their photo. The doorman sees it full-size on scan to confirm identity instantly.</div>
-      <div className="feature-tag">Self-upload link · Gate display</div>
-    </div>
-
-    <div className="feature-card reveal">
-      <div className="feature-icon">
-        <svg viewBox="0 0 22 22" fill="none">
-          <path d="M3 11L8 16L19 6" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </div>
-      <div className="feature-title">Live Supabase Sync</div>
-      <div className="feature-desc">Every check-in updates the database instantly. The admin dashboard reflects live attendance as guests arrive.</div>
-      <div className="feature-tag">Real-time · No refresh needed</div>
-    </div>
-
-    <div className="feature-card reveal">
-      <div className="feature-icon">
-        <svg viewBox="0 0 22 22" fill="none">
-          <path d="M4 6H18M4 11H14M4 16H10" stroke="#C9A84C" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
-      </div>
-      <div className="feature-title">CSV Bulk Import</div>
-      <div className="feature-desc">Import your entire guest list from a spreadsheet in seconds. WeddingIQ maps all standard column names automatically.</div>
-      <div className="feature-tag">CSV · Excel · Any format</div>
-    </div>
-
-  </div>
-</section>
-
-{/*  ── HOW IT WORKS ──  */}
-<section id="how">
-  <div className="how-it-works">
-    <div className="how-inner">
-      <div className="how-left reveal">
-        <div className="section-eyebrow"><div className="eyebrow-line"></div> How it works</div>
-        <h2 className="section-title">From invite to arrival in four steps</h2>
-        <div className="how-steps">
-          <div className="how-step">
-            <div className="step-num">1</div>
-            <div className="step-body">
-              <div className="step-title">Add your guests</div>
-              <div className="step-desc">Enter individually, import a CSV, or bulk-add. Each guest gets a unique QR token automatically.</div>
-            </div>
-          </div>
-          <div className="how-step">
-            <div className="step-num">2</div>
-            <div className="step-body">
-              <div className="step-title">Design &amp; generate cards</div>
-              <div className="step-desc">Choose a theme, let AI write each personalised message, then share the unique invite link per guest.</div>
-            </div>
-          </div>
-          <div className="how-step">
-            <div className="step-num">3</div>
-            <div className="step-body">
-              <div className="step-title">Send the gate link</div>
-              <div className="step-desc">Share one URL with the doorman via WhatsApp. They open it on their phone — no app install needed.</div>
-            </div>
-          </div>
-          <div className="how-step">
-            <div className="step-num">4</div>
-            <div className="step-body">
-              <div className="step-title">Scan &amp; celebrate</div>
-              <div className="step-desc">Guest shows QR, doorman scans, photo confirms identity, check-in confirmed with audio feedback.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="how-visual reveal">
-        <div className="how-card-stack">
-          <div className="hc hc-1">
-            <div className="hc-title">Guest: Sarah Banda</div>
-            <div className="hc-row"><span className="hc-l">Table</span><span className="hc-v">12</span></div>
-            <div className="hc-row"><span className="hc-l">RSVP</span><span className="hc-v">Pending</span></div>
-          </div>
-          <div className="hc hc-2">
-            <div className="hc-title">Guest: John Doe</div>
-            <div className="hc-row"><span className="hc-l">Table</span><span className="hc-v">7</span></div>
-            <div className="hc-row"><span className="hc-l">RSVP</span><span className="hc-v">Confirmed</span></div>
-          </div>
-          <div className="hc hc-3">
-            <div className="hc-title" style={{"color":"#7FFFA9"}}>✓ Priya Mumba — Checked in</div>
-            <div className="hc-row"><span className="hc-l">Table</span><span className="hc-v">4</span></div>
-            <div className="hc-row"><span className="hc-l">Time</span><span className="hc-v-g">20:14</span></div>
-            <div className="hc-row"><span className="hc-l">RSVP</span><span className="hc-v-g">Confirmed</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-{/*  ── GATE SECTION ──  */}
-<section id="gate">
-  <div className="gate-section">
-    <div className="gate-left reveal">
-      <div className="section-eyebrow"><div className="eyebrow-line"></div> Gate Scanner</div>
-      <h2 className="section-title">Your doorman's command centre</h2>
-      <p className="section-sub" style={{"marginBottom":"28px"}}>
-        A dedicated fullscreen page optimised for any phone. No app. No login. Just send the link, bookmark it, and scan all night.
-      </p>
-      <ul style={{"listStyle":"none","display":"flex","flexDirection":"column","gap":"14px"}}>
-        <li className="gate-list-item">
-          <span className="gate-list-icon">✓</span>
-          <span className="gate-list-text">Live camera QR scanning with animated viewfinder</span>
-        </li>
-        <li className="gate-list-item">
-          <span className="gate-list-icon">✓</span>
-          <span className="gate-list-text">Large guest photo for face verification</span>
-        </li>
-        <li className="gate-list-item">
-          <span className="gate-list-icon">✓</span>
-          <span className="gate-list-text">Audio chime on success, warning tone for duplicates</span>
-        </li>
-        <li className="gate-list-item">
-          <span className="gate-list-icon">✓</span>
-          <span className="gate-list-text">Live stats bar — total, checked in, remaining, rate</span>
-        </li>
-        <li className="gate-list-item">
-          <span className="gate-list-icon">✓</span>
-          <span className="gate-list-text">Manual token input fallback when camera unavailable</span>
-        </li>
-      </ul>
-      <div style={{"marginTop":"36px"}}>
-        <a href="gate.html" className="btn-primary" style={{"display":"inline-flex"}}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <rect x="1" y="1" width="6" height="6" rx="1" stroke="#1A0E08" strokeWidth="1.5"/>
-            <rect x="9" y="1" width="6" height="6" rx="1" stroke="#1A0E08" strokeWidth="1.5"/>
-            <rect x="1" y="9" width="6" height="6" rx="1" stroke="#1A0E08" strokeWidth="1.5"/>
-            <path d="M9 9H11M13 9H15M15 11V13M15 15H13M11 15V13M11 13H9" stroke="#1A0E08" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* ── HERO ── */}
+      <section className="lp-hero" style={{position:'relative',zIndex:1}}>
+        <div
+          className="lp-hero-img"
+          style={{backgroundImage:"url('https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=1600&q=80')"}}
+        />
+        <div className="lp-hero-bg">
+          <svg viewBox="0 0 1200 900" fill="none" preserveAspectRatio="xMidYMid slice">
+            <path d="M600 900 Q200 500 600 100 Q1000 500 600 900" stroke="#C9A84C" strokeWidth="0.6"/>
+            <path d="M600 900 Q150 450 600 0 Q1050 450 600 900" stroke="#C9A84C" strokeWidth="0.35"/>
+            <circle cx="600" cy="450" r="340" stroke="#C9A84C" strokeWidth="0.4"/>
+            <circle cx="600" cy="450" r="520" stroke="#C9A84C" strokeWidth="0.25"/>
+            <line x1="0" y1="900" x2="600" y2="450" stroke="#C9A84C" strokeWidth="0.3" opacity="0.5"/>
+            <line x1="1200" y1="0" x2="600" y2="450" stroke="#C9A84C" strokeWidth="0.3" opacity="0.5"/>
+            <line x1="0" y1="0" x2="600" y2="450" stroke="#C9A84C" strokeWidth="0.3" opacity="0.3"/>
+            <line x1="1200" y1="900" x2="600" y2="450" stroke="#C9A84C" strokeWidth="0.3" opacity="0.3"/>
           </svg>
-          Open Gate Scanner
-        </a>
-      </div>
-    </div>
+        </div>
 
-    <div className="gate-phone-wrap reveal">
-      <div className="gate-phone">
-        <div className="gate-phone-notch"></div>
-        <div className="gate-phone-screen">
-          <div className="gate-phone-bar">
-            <span>🚪 Gate Scanner</span>
-            <span className="gate-phone-bar-t">20:14</span>
+        <div className="lp-hero-left">
+          <div className="lp-eyebrow">
+            <div className="lp-eyebrow-line"/>
+            <span className="lp-eyebrow-text">AI-Powered Wedding Management</span>
+            <div className="lp-eyebrow-line"/>
           </div>
-          <div className="gate-phone-cam">
-            <div className="sm-frame">
-              <div className="sm-tl"></div><div className="sm-tr"></div>
-              <div className="sm-bl"></div><div className="sm-br"></div>
-              <div className="sm-line"></div>
+
+          <h1 className="lp-h1">
+            Every guest<br/>
+            <em>perfectly</em> welcomed
+            <span className="lp-h1-strong">on your big day</span>
+          </h1>
+
+          <div className="lp-rule"/>
+
+          <p className="lp-sub">
+            From personalised invitation cards to real-time QR check-in at the gate —
+            WeddingIQ handles your entire guest journey with elegance.
+          </p>
+
+          <div className="lp-actions">
+            <a href="#" onClick={e => openAuth(e,'signin')} className="lp-btn-primary">
+              <IconArrow/> Launch WeddingIQ
+            </a>
+            <a href="gate.html" className="lp-btn-outline">
+              <IconScan/> Open Gate Scanner
+            </a>
+          </div>
+
+          <div className="lp-stats">
+            <div className="lp-stat">
+              <div className="lp-stat-num">360°</div>
+              <div className="lp-stat-label">Guest journey</div>
+            </div>
+            <div className="lp-stat" style={{paddingLeft:28}}>
+              <div className="lp-stat-num">AI</div>
+              <div className="lp-stat-label">Personalised cards</div>
+            </div>
+            <div className="lp-stat" style={{paddingLeft:28}}>
+              <div className="lp-stat-num">Live</div>
+              <div className="lp-stat-label">Supabase sync</div>
             </div>
           </div>
-          <div className="gate-result-mini">
-            <div className="gm-avatar">PM</div>
-            <div className="gm-name">Priya Mumba</div>
-            <div className="gm-badge">✓ Checked in at 20:14</div>
-            <div className="gm-rows">
-              <div className="gm-row"><span className="gm-l">Table</span><span className="gm-v">4</span></div>
-              <div className="gm-row"><span className="gm-l">RSVP</span><span className="gm-v-ok">Confirmed</span></div>
-              <div className="gm-row"><span className="gm-l">Check-in</span><span className="gm-v-ok">20:14</span></div>
+        </div>
+
+        <div className="lp-hero-right">
+          <div className="lp-phone-wrap">
+            <div className="lp-phone">
+              <div className="lp-phone-pill"/>
+              <div className="lp-phone-screen">
+                <div className="lp-phone-bar">
+                  <div className="lp-phone-bar-title">
+                    <IconScan/> Gate Scanner
+                  </div>
+                  <span className="lp-phone-time">20:14</span>
+                </div>
+                <div className="lp-phone-cam">
+                  <div className="lp-scan-frame">
+                    <div className="lp-scan-tr"/>
+                    <div className="lp-scan-bl"/>
+                    <div className="lp-scan-line"/>
+                  </div>
+                </div>
+                <div className="lp-phone-result">
+                  <div className="lp-phone-avatar">
+                    PM
+                    <div className="lp-phone-tick"><IconCheck/></div>
+                  </div>
+                  <div className="lp-phone-guest">Priya Mumba</div>
+                  <div className="lp-phone-badge">Checked in · 20:14</div>
+                  <div className="lp-phone-rows">
+                    <div className="lp-phone-row"><span className="lp-pr-l">Table</span><span className="lp-pr-v">4</span></div>
+                    <div className="lp-phone-row"><span className="lp-pr-l">RSVP</span><span className="lp-pr-ok">Confirmed</span></div>
+                    <div className="lp-phone-row"><span className="lp-pr-l">Check-in</span><span className="lp-pr-ok">20:14</span></div>
+                  </div>
+                </div>
+                <div className="lp-phone-stats">
+                  <div className="lp-ps"><div className="lp-ps-v">120</div><div className="lp-ps-l">Total</div></div>
+                  <div className="lp-ps"><div className="lp-ps-v" style={{color:'#7FFFA9'}}>48</div><div className="lp-ps-l">In</div></div>
+                  <div className="lp-ps"><div className="lp-ps-v" style={{color:'#E8D5A3'}}>72</div><div className="lp-ps-l">Left</div></div>
+                  <div className="lp-ps"><div className="lp-ps-v" style={{color:'rgba(255,255,255,.4)'}}>40%</div><div className="lp-ps-l">Rate</div></div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="gm-stats">
-            <div className="gm-sc"><div className="gm-sv">120</div><div className="gm-sl">Total</div></div>
-            <div className="gm-sc"><div className="gm-sv" style={{"color":"#7FFFA9"}}>48</div><div className="gm-sl">In</div></div>
-            <div className="gm-sc"><div className="gm-sv" style={{"color":"#E8D5A3"}}>72</div><div className="gm-sl">Left</div></div>
-            <div className="gm-sc"><div className="gm-sv" style={{"color":"rgba(255,255,255,.4)"}}>40%</div><div className="gm-sl">Rate</div></div>
+        </div>
+      </section>
+
+      {/* ── FEATURES ── */}
+      <section className="lp-features" id="features">
+        <div className="lp-features-hd lp-reveal">
+          <div className="lp-section-eye"><div className="lp-eye-dash"/>Everything you need<div className="lp-eye-dash"/></div>
+          <h2 className="lp-section-h2">Designed for the perfect day</h2>
+          <p className="lp-section-p">Every feature built around one goal — making your guests feel seen, welcomed, and celebrated.</p>
+        </div>
+
+        <div className="lp-grid">
+          <div className="lp-fc featured lp-reveal lp-feat-main">
+            <div className="lp-fc-icon"><IconDiamond/></div>
+            <div className="lp-fc-title">AI Invite Card Designer</div>
+            <div className="lp-fc-desc">
+              DeepSeek AI generates a unique, heartfelt personalised message for every single guest. Choose from 6 curated themes — Mughal Gold, Midnight Noir, Sage Garden and more — then customise every line with live preview.
+            </div>
+            <span className="lp-fc-tag">DeepSeek AI · 6 themes · Bulk generation</span>
+          </div>
+
+          <div className="lp-fc lp-reveal lp-feat-right-a">
+            <div className="lp-fc-icon"><IconQR/></div>
+            <div className="lp-fc-title">QR Code Check-in</div>
+            <div className="lp-fc-desc">Every invite carries a unique QR code. The doorman scans it in seconds — no lists, no confusion.</div>
+            <span className="lp-fc-tag">Auto-generated · Per guest</span>
+          </div>
+          <div className="lp-fc lp-reveal lp-feat-right-b">
+            <div className="lp-fc-icon"><IconUser/></div>
+            <div className="lp-fc-title">Photo Verification</div>
+            <div className="lp-fc-desc">Guests self-upload their photo. The doorman sees it full-size on scan.</div>
+            <span className="lp-fc-tag">Self-upload · Gate display</span>
+          </div>
+
+          <div className="lp-fc lp-reveal lp-feat-bottom-a">
+            <div className="lp-fc-icon"><IconSync/></div>
+            <div className="lp-fc-title">Live Supabase Sync</div>
+            <div className="lp-fc-desc">Every check-in updates the dashboard instantly. No refresh needed.</div>
+            <span className="lp-fc-tag">Real-time</span>
+          </div>
+          <div className="lp-fc lp-reveal lp-feat-bottom-b">
+            <div className="lp-fc-icon"><IconTable/></div>
+            <div className="lp-fc-title">CSV Bulk Import</div>
+            <div className="lp-fc-desc">Import your entire guest list from a spreadsheet in seconds. All column names auto-mapped.</div>
+            <span className="lp-fc-tag">CSV · Excel · Any format</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── PHOTO STRIP ── */}
+      <div className="lp-photo-strip lp-reveal">
+        <div className="lp-photo-strip-inner">
+          <div className="lp-photo-frame lp-photo-tall">
+            <img
+              src="https://images.unsplash.com/photo-1587271407850-8d438ca9fdf2?w=800&q=75"
+              alt="Elegant wedding reception with candlelight"
+              loading="lazy"
+            />
+            <span className="lp-photo-cap">The reception</span>
+          </div>
+          <div className="lp-photo-frame lp-photo-short">
+            <img
+              src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=600&q=75"
+              alt="Wedding guests celebrating"
+              loading="lazy"
+            />
+            <span className="lp-photo-cap">The guests</span>
+          </div>
+          <div className="lp-photo-frame lp-photo-short">
+            <img
+              src="https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=600&q=75"
+              alt="Wedding invitation stationery"
+              loading="lazy"
+            />
+            <span className="lp-photo-cap">The invitation</span>
+          </div>
+          <div className="lp-photo-frame lp-photo-tall">
+            <img
+              src="https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=800&q=75"
+              alt="Wedding ceremony aisle at night"
+              loading="lazy"
+            />
+            <span className="lp-photo-cap">The moment</span>
           </div>
         </div>
       </div>
-    </div>
-  </div>
-</section>
 
-{/*  ── CTA ──  */}
-<section className="cta-section" id="app">
-  <div className="cta-inner reveal">
-    <span className="cta-ornament">💍</span>
-    <h2 className="cta-title">Make every guest feel like the guest of honour</h2>
-    <p className="cta-sub">WeddingIQ handles the logistics so you can focus on the memories. Ready when you are.</p>
-    <div className="cta-actions">
-      <a onClick={(e) => openAuth(e, "signin")} href="#" className="btn-primary">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="#1A0E08" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Launch WeddingIQ
-      </a>
-      <a href="gate.html" className="btn-secondary">Open Gate Scanner</a>
-    </div>
-    <div className="cta-note">
-      <span>No sign-up required</span>
-      <span className="cta-note-dot"></span>
-      <span>Works in any browser</span>
-      <span className="cta-note-dot"></span>
-      <span>Supabase pre-connected</span>
-    </div>
-  </div>
-</section>
+      {/* ── HOW IT WORKS ── */}
+      <section id="how">
+        <div className="lp-how">
+          <div className="lp-how-inner">
+            <div className="lp-how-left lp-reveal">
+              <div className="lp-section-eye"><div className="lp-eye-dash"/>How it works</div>
+              <h2 className="lp-section-h2">From invite to arrival<br/>in four steps</h2>
+              <div className="lp-steps" style={{marginTop:32}}>
+                {[
+                  ['Add your guests','Enter individually, import a CSV, or bulk-add. Each guest gets a unique QR token automatically.'],
+                  ['Design & generate cards','Choose a theme, let AI write each personalised message, then share the unique invite link per guest.'],
+                  ['Send the gate link','Share one URL with the doorman via WhatsApp. No app install, no login required.'],
+                  ['Scan & celebrate','Guest shows QR, doorman scans, photo confirms identity, check-in confirmed with audio feedback.'],
+                ].map(([title, desc], i) => (
+                  <div className="lp-step" key={i}>
+                    <div className="lp-step-num">{i+1}</div>
+                    <div className="lp-step-body">
+                      <div className="lp-step-title">{title}</div>
+                      <div className="lp-step-desc">{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-{/*  ── FOOTER ──  */}
-<footer>
-  <div className="footer-brand">WeddingIQ 💍</div>
-  <ul className="footer-links">
-    <li><a onClick={(e) => openAuth(e, "signin")} href="#">Admin App</a></li>
-    <li><a href="gate.html">Gate Scanner</a></li>
-    <li><a href="#invite">Invite Card</a></li>
-  </ul>
-  <span className="footer-copy">Built with DeepSeek AI &amp; Supabase</span>
-</footer>
+            <div className="lp-reveal" style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <div className="lp-card-stack">
+                <div className="lp-hc lp-hc-1">
+                  <div className="lp-hc-title">Sarah Banda</div>
+                  <div className="lp-hc-row"><span className="lp-hc-l">Table</span><span className="lp-hc-v">12</span></div>
+                  <div className="lp-hc-row"><span className="lp-hc-l">RSVP</span><span className="lp-hc-v">Pending</span></div>
+                </div>
+                <div className="lp-hc lp-hc-2">
+                  <div className="lp-hc-title">John Doe</div>
+                  <div className="lp-hc-row"><span className="lp-hc-l">Table</span><span className="lp-hc-v">7</span></div>
+                  <div className="lp-hc-row"><span className="lp-hc-l">RSVP</span><span className="lp-hc-v">Confirmed</span></div>
+                </div>
+                <div className="lp-hc lp-hc-3">
+                  <div className="lp-hc-title" style={{color:'#7FFFA9'}}>Priya Mumba — Checked in</div>
+                  <div className="lp-hc-row"><span className="lp-hc-l">Table</span><span className="lp-hc-ok">4</span></div>
+                  <div className="lp-hc-row"><span className="lp-hc-l">Time</span><span className="lp-hc-ok">20:14</span></div>
+                  <div className="lp-hc-row"><span className="lp-hc-l">RSVP</span><span className="lp-hc-ok">Confirmed</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
+      {/* ── GATE SECTION ── */}
+      <section id="gate">
+        <div className="lp-gate">
+          <div className="lp-reveal">
+            <div className="lp-section-eye"><div className="lp-eye-dash"/>Gate Scanner</div>
+            <h2 className="lp-section-h2">Your doorman's command centre</h2>
+            <p className="lp-section-p" style={{marginBottom:0}}>
+              A dedicated fullscreen page optimised for any phone. No app. No login. Just send the link, bookmark it, and scan all night.
+            </p>
+            <div className="lp-gate-list">
+              {[
+                'Live camera QR scanning with animated viewfinder',
+                'Large guest photo for instant face verification',
+                'Audio chime on success, warning tone for duplicates',
+                'Live stats bar — total, checked in, remaining, rate',
+                'Manual token input fallback when camera unavailable',
+              ].map((text, i) => (
+                <div className="lp-gate-item" key={i}>
+                  <div className="lp-gate-check"><IconCheck/></div>
+                  <span className="lp-gate-text">{text}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:36}}>
+              <a href="gate.html" className="lp-btn-primary" style={{display:'inline-flex'}}>
+                <IconScan/> Open Gate Scanner
+              </a>
+            </div>
+          </div>
 
+          <div className="lp-reveal" style={{display:'flex',flexDirection:'column',gap:20,alignItems:'center'}}>
+            <div className="lp-gate-photo">
+              <img
+                src="https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=900&q=75"
+                alt="Wedding venue entrance at night"
+                loading="lazy"
+              />
+              <div className="lp-gate-photo-label">The entrance, handled.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA ── */}
+      <section className="lp-cta" id="app">
+        <div
+          className="lp-cta-bg-img"
+          style={{backgroundImage:"url('https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=1600&q=70')"}}
+        />
+        <div className="lp-cta-inner lp-reveal">
+          <div className="lp-cta-ornament">~ WeddingIQ ~</div>
+          <h2 className="lp-cta-h2">
+            Make every guest feel like<br/>
+            <em>the guest of honour</em>
+          </h2>
+          <p className="lp-cta-sub">
+            WeddingIQ handles the logistics so you can focus on the memories.<br/>Ready when you are.
+          </p>
+          <div className="lp-cta-actions">
+            <a href="#" onClick={e => openAuth(e,'signin')} className="lp-btn-primary">
+              <IconArrow/> Launch WeddingIQ
+            </a>
+            <a href="gate.html" className="lp-btn-outline">
+              <IconScan/> Gate Scanner
+            </a>
+          </div>
+          <div className="lp-cta-note">
+            <span>No credit card required</span>
+            <div className="lp-cta-dot"/>
+            <span>Works in any browser</span>
+            <div className="lp-cta-dot"/>
+            <span>Supabase pre-connected</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SOCIAL PROOF ── */}
+      <section>
+        <div className="lp-proof lp-reveal">
+          {[
+            {
+              quote: "Guests kept messaging us asking how we made the invitations — everyone thought we hired a designer. The AI messages were so personal.",
+              name: "Amara & David",
+              event: "Lagos, November 2024",
+              img: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=80&q=70"
+            },
+            {
+              quote: "The gate scanner saved the night. Our doorman scanned 200 guests in under 30 minutes — no queue, no confusion, no printed lists.",
+              name: "Thandeka & Sipho",
+              event: "Johannesburg, March 2025",
+              img: "https://images.unsplash.com/photo-1506863530036-1efeddceb993?w=80&q=70"
+            },
+            {
+              quote: "I built the whole thing the night before the wedding. Imported the CSV, generated the cards, shared the gate link — done. Genuinely magical.",
+              name: "Sofia & James",
+              event: "Nairobi, January 2025",
+              img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&q=70"
+            },
+          ].map(({ quote, name, event, img }, i) => (
+            <div className="lp-proof-card" key={i}>
+              <div className="lp-proof-mark">"</div>
+              <div className="lp-proof-quote">"{quote}"</div>
+              <div className="lp-proof-author">
+                <div className="lp-proof-avatar">
+                  <img src={img} alt={name} loading="lazy"/>
+                </div>
+                <div>
+                  <div className="lp-proof-name">{name}</div>
+                  <div className="lp-proof-event">{event}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="lp-footer">
+        <span className="lp-footer-brand">WeddingIQ</span>
+        <ul className="lp-footer-links">
+          <li><a href="#" onClick={e => openAuth(e,'signin')}>Admin App</a></li>
+          <li><a href="gate.html">Gate Scanner</a></li>
+          <li><a href="#features">Features</a></li>
+        </ul>
+        <span className="lp-footer-copy">Every guest, perfectly welcomed.</span>
+      </footer>
+
+      {/* ── AUTH MODAL ── */}
       {showAuth && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--plum)', borderRadius: '16px', overflow: 'hidden', width: '100%', maxWidth: '440px', position: 'relative' }}>
-             <button onClick={() => setShowAuth(false)} style={{ position: 'absolute', right: 20, top: 20, background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer', zIndex: 10 }}>×</button>
-             <AuthScreen
-               onAuth={onAuth}
-               toast={toast}
-               mode={authMode}
-               isModal={true}
-               onSuccess={redirectToUserHome}
-             />
+        <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.75)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
+          <div style={{background:'var(--plum)',borderRadius:16,overflow:'hidden',width:'100%',maxWidth:440,position:'relative',boxShadow:'0 32px 80px rgba(0,0,0,.6)'}}>
+            <button onClick={()=>setShowAuth(false)} style={{position:'absolute',right:20,top:20,background:'none',border:'none',color:'rgba(245,237,216,.5)',fontSize:20,cursor:'pointer',zIndex:10,lineHeight:1}}>×</button>
+            <AuthScreen onAuth={onAuth} toast={toast} mode={authMode} isModal={true} onSuccess={redirectToUserHome}/>
           </div>
         </div>
       )}
