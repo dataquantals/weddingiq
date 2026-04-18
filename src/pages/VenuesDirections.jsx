@@ -93,10 +93,33 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
     localStorage.setItem(venueKey, JSON.stringify(data))
   }
 
-  // Debounced search
+  // Debounced search — Google Maps URL paste + Nominatim (Zambia-biased) + Photon fuzzy, with global fallback
   const handleSearch = (query) => {
     setSearchQuery(query)
     setSearchResults([])
+
+    // ── Google Maps URL paste — auto-apply immediately ───────────────
+    if (query.includes('google.com/maps') || query.includes('maps.app.goo.gl')) {
+      const dataMatch = query.match(/!3d(-?\d+\.?\d+)!4d(-?\d+\.?\d+)/)
+      const atMatch   = query.match(/@(-?\d+\.?\d+),(-?\d+\.?\d+)/)
+      if (dataMatch || atMatch) {
+        const lat = parseFloat(dataMatch ? dataMatch[1] : atMatch[1])
+        const lng = parseFloat(dataMatch ? dataMatch[2] : atMatch[2])
+        const nameMatch = query.match(/\/place\/([^\/@?&]+)/)
+        const rawName   = nameMatch ? decodeURIComponent(nameMatch[1].replace(/\+/g, ' ')) : null
+        const gmResult = {
+          display_name: rawName || `Pinned Location (${lat.toFixed(5)}, ${lng.toFixed(5)})`,
+          lat: String(lat), lon: String(lng),
+          type: 'place', _source: 'gmaps'
+        }
+        // Auto-apply: pin venue immediately without requiring a click
+        selectVenue(gmResult)
+        toast?.(`📍 ${searchTarget === 'reception' ? 'Reception' : 'Ceremony'} venue pinned from Google Maps link`, 'ok')
+        return
+      }
+    }
+    // ── End Google Maps URL detection ─────────────────────────────────
+
     if (query.trim().length < 2) {
       setShowResults(false)
       setIsSearching(false)
@@ -106,17 +129,63 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
     clearTimeout(searchDebounce.current)
     searchDebounce.current = setTimeout(async () => {
       try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&addressdetails=1`
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } })
-        const data = await res.json()
-        setSearchResults(data || [])
+        const q = encodeURIComponent(query.trim())
+        const headers = { 'Accept-Language': 'en' }
+
+        // Run Nominatim (Zambia-only) and Photon (Lusaka-biased fuzzy) in parallel
+        const [nomResult, photonResult] = await Promise.allSettled([
+          fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=8&addressdetails=1&countrycodes=zm`, { headers }),
+          fetch(`https://photon.komoot.io/api/?q=${q}&limit=6&lang=en&lat=-15.4167&lon=28.2833`)
+        ])
+
+        let combined = []
+
+        if (nomResult.status === 'fulfilled') {
+          const d = await nomResult.value.json()
+          combined = d || []
+        }
+
+        if (photonResult.status === 'fulfilled') {
+          const pj = await photonResult.value.json()
+          const photon = (pj.features || []).map(f => {
+            const p = f.properties
+            const parts = [
+              p.name,
+              p.housenumber && p.street ? `${p.housenumber} ${p.street}` : p.street,
+              p.city || p.town || p.village,
+              p.state,
+              p.country
+            ].filter(Boolean)
+            return {
+              display_name: parts.join(', '),
+              lat: String(f.geometry.coordinates[1]),
+              lon: String(f.geometry.coordinates[0]),
+              type: p.type || p.osm_type || 'place',
+              _source: 'photon'
+            }
+          }).filter(r => r.display_name)
+
+          for (const p of photon) {
+            const pLat = parseFloat(p.lat), pLon = parseFloat(p.lon)
+            const dup = combined.some(r => Math.abs(parseFloat(r.lat) - pLat) < 0.001 && Math.abs(parseFloat(r.lon) - pLon) < 0.001)
+            if (!dup) combined.push(p)
+          }
+        }
+
+        // Fallback: global Nominatim if both sources returned nothing
+        if (combined.length === 0) {
+          const fb = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=6&addressdetails=1`, { headers })
+          combined = await fb.json() || []
+        }
+
+        setSearchResults(combined.slice(0, 10))
         setShowResults(true)
-        setIsSearching(false)
       } catch (e) {
         console.error('Search error:', e)
+      } finally {
         setIsSearching(false)
       }
-    }, 350)
+    }, 400)
   }
 
   // Close dropdown on outside click
@@ -148,15 +217,28 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
     const addr = result.display_name
     const lat = parseFloat(result.lat)
     const lng = parseFloat(result.lon)
-    
-    if (searchTarget === 'reception') {
-      updateReception({ address: addr, lat, lng })
-      setReceptionData(prev => ({...prev, address: addr, lat, lng}))
-    } else {
-      updateCeremony({ address: addr, lat, lng })
-      setCeremonyData(prev => ({...prev, address: addr, lat, lng}))
+    const isReception = searchTarget === 'reception'
+
+    const newCeremony  = isReception ? ceremonyData  : { ...ceremonyData, address: addr, lat, lng }
+    const newReception = isReception ? { ...receptionData, address: addr, lat, lng } : receptionData
+
+    if (isReception) setReceptionData(newReception)
+    else             setCeremonyData(newCeremony)
+
+    // Persist to localStorage AND sync to parent (so invite cards update immediately)
+    const data = {
+      ceremony:  { ...newCeremony, type: ceremonyType },
+      reception: { ...newReception, same: receptionSame }
     }
-    
+    localStorage.setItem(venueKey, JSON.stringify(data))
+    if (onVenuesChange) onVenuesChange(data)
+    window.__WEDDINGIQ_VENUES__ = data
+
+    // Fly map to the newly pinned location
+    if (mapRef.current && !isNaN(lat) && !isNaN(lng)) {
+      mapRef.current.flyTo([lat, lng], 16, { duration: 0.6 })
+    }
+
     setShowResults(false)
     setSearchQuery('')
   }
@@ -256,8 +338,8 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
       const cLng = ceremonyData.lng
       const rLat = receptionData.lat
       const rLng = receptionData.lng
-      const hasC = !!(cLat && cLng)
-      const hasR = !!(rLat && rLng && !receptionSame)
+      const hasC = cLat != null && cLng != null && !isNaN(cLat) && !isNaN(cLng)
+      const hasR = rLat != null && rLng != null && !isNaN(rLat) && !isNaN(rLng) && !receptionSame
 
       if (cMarkerRef.current) { map.removeLayer(cMarkerRef.current); cMarkerRef.current = null }
       if (rMarkerRef.current) { map.removeLayer(rMarkerRef.current); rMarkerRef.current = null }
@@ -481,9 +563,23 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
           <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: 10, background: '#fff', overflow: 'hidden', boxShadow: '0 4px 12px rgba(74,31,92,0.1)', transition: 'all 0.2s' }}>
             {!receptionSame && (
               <div style={{ padding: '4px', borderRight: '1px solid var(--border)', display: 'flex', gap: 2, background: '#f8f8f8' }}>
-                <button onClick={() => setSearchTarget('ceremony')} title="Update Ceremony"
+                <button
+                  onClick={() => {
+                    setSearchTarget('ceremony')
+                    if (ceremonyData.lat != null && ceremonyData.lng != null && mapRef.current) {
+                      mapRef.current.flyTo([ceremonyData.lat, ceremonyData.lng], 16, { duration: 0.6 })
+                    }
+                  }}
+                  title="View & update Ceremony location"
                   style={{ padding: '6px 12px', fontSize: 12, border: 'none', background: searchTarget === 'ceremony' ? 'var(--plum)' : 'transparent', color: searchTarget === 'ceremony' ? '#fff' : 'var(--muted)', borderRadius: 6, cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>🕌 Ceremony</button>
-                <button onClick={() => setSearchTarget('reception')} title="Update Reception"
+                <button
+                  onClick={() => {
+                    setSearchTarget('reception')
+                    if (receptionData.lat != null && receptionData.lng != null && mapRef.current) {
+                      mapRef.current.flyTo([receptionData.lat, receptionData.lng], 16, { duration: 0.6 })
+                    }
+                  }}
+                  title="View & update Reception location"
                   style={{ padding: '6px 12px', fontSize: 12, border: 'none', background: searchTarget === 'reception' ? 'var(--plum)' : 'transparent', color: searchTarget === 'reception' ? '#fff' : 'var(--muted)', borderRadius: 6, cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s' }}>🥂 Reception</button>
               </div>
             )}
@@ -491,7 +587,7 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
               <span style={{ padding: '0 12px', fontSize: 14, opacity: 0.6 }}>{isSearching ? '⏳' : '🔍'}</span>
               <input
                 type="text"
-                placeholder={`Search and pin ${searchTarget} location…`}
+                placeholder={`Search venue name or paste a Google Maps link…`}
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
@@ -509,6 +605,12 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
               )}
             </div>
           </div>
+
+          {!showResults && (
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6, paddingLeft: 4, opacity: 0.75 }}>
+              💡 Tip: You can <strong>paste a Google Maps link</strong> directly to pin any location with exact precision.
+            </div>
+          )}
 
           {showResults && (
             <div style={{
@@ -531,7 +633,22 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
                   const parts = result.display_name.split(', ')
                   const name = parts.slice(0, 2).join(', ')
                   const address = parts.slice(2, 5).join(', ')
-                  const icon = result.type === 'amenity' ? '�' : result.type === 'building' ? '🏢' : '📍'
+                  const isGmaps = result._source === 'gmaps'
+                  const icon = (() => {
+                    const t = result.type
+                    if (['church','cathedral','chapel','place_of_worship'].includes(t)) return '⛪'
+                    if (['mosque','kingdom_hall'].includes(t)) return '🕌'
+                    if (['restaurant','cafe','bar','pub','fast_food'].includes(t)) return '🍽️'
+                    if (['hotel','motel','hostel','guest_house'].includes(t)) return '🏨'
+                    if (['school','college','university'].includes(t)) return '🏫'
+                    if (['hospital','clinic','doctors'].includes(t)) return '🏥'
+                    if (['park','garden','recreation_ground'].includes(t)) return '🌿'
+                    if (['stadium','sports_centre','sports_hall'].includes(t)) return '🏟️'
+                    if (t === 'amenity') return '🏛️'
+                    if (t === 'building') return '🏢'
+                    if (t === 'residential') return '🏘️'
+                    return '📍'
+                  })()
 
                   return (
                     <div key={i} onClick={() => selectVenue(result)}
@@ -550,8 +667,12 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
                         {icon}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--plum)', lineHeight: 1.3 }}>{name}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--plum)', lineHeight: 1.3 }}>{name}</span>
+                          {isGmaps && <span style={{ fontSize: 10, fontWeight: 700, background: '#4285F4', color: '#fff', borderRadius: 4, padding: '1px 6px', letterSpacing: 0.3 }}>Google Maps</span>}
+                        </div>
                         {address && <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 }}>{address}</div>}
+                        {isGmaps && <div style={{ fontSize: 11, color: '#4285F4', marginTop: 2 }}>📍 Exact coordinates extracted from link</div>}
                       </div>
                     </div>
                   )
@@ -587,7 +708,19 @@ export default function VenuesDirections({ config, onUpdate, toast, venues: pare
         {ceremonyData.address && (
           <div style={{ marginTop: 14, background: 'rgba(45,122,79,.06)', border: '1px solid rgba(45,122,79,.2)', borderRadius: 8, padding: '9px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ color: 'var(--ok)', fontSize: 13, flexShrink: 0, marginTop: 1 }}>✓</span>
-            <span style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.55, flex: 1 }}>{ceremonyData.address}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--plum)', marginBottom: 1 }}>Ceremony</div>
+              <div style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.55 }}>{ceremonyData.address}</div>
+            </div>
+          </div>
+        )}
+        {receptionData.address && !receptionSame && (
+          <div style={{ marginTop: 8, background: 'rgba(123,94,167,.06)', border: '1px solid rgba(123,94,167,.2)', borderRadius: 8, padding: '9px 12px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <span style={{ color: 'var(--plum)', fontSize: 13, flexShrink: 0, marginTop: 1 }}>✓</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--plum)', marginBottom: 1 }}>Reception</div>
+              <div style={{ fontSize: 12, color: 'var(--ink)', lineHeight: 1.55 }}>{receptionData.address}</div>
+            </div>
           </div>
         )}
       </div>
