@@ -171,6 +171,7 @@ export default function InviteCards({ guests, design, theme, bgImage, config, ve
   const [viewGuest, setViewGuest]  = useState(null)
   const [running,   setRunning]    = useState(false)
   const [progress,  setProgress]   = useState(0)
+  const [search,    setSearch]     = useState('')
   const baseUrl = window.location.href.split('?')[0]
   const noMsg   = guests.filter(g => !g.ai_message).length
 
@@ -210,13 +211,31 @@ export default function InviteCards({ guests, design, theme, bgImage, config, ve
         </button>
       </div>
 
-      <div className="sh"><div className="sh-title">All Guest Cards</div></div>
+      <div className="sh" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div className="sh-title" style={{ margin: 0 }}>All Guest Cards</div>
+        <div style={{ position: 'relative', minWidth: 180, maxWidth: 280, flex: 1 }}>
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, opacity: 0.45, pointerEvents: 'none' }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Search guest name…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '7px 10px 7px 30px', fontSize: 12.5, border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--sans)', outline: 'none', background: '#fff' }}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--muted)', lineHeight: 1 }}
+            >×</button>
+          )}
+        </div>
+      </div>
 
       {!guests.length
         ? <div style={{ textAlign:'center', padding:40, color:'var(--muted)' }}><div style={{ fontSize:36, marginBottom:10 }}>💌</div>Add guests first</div>
         : (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))', gap:13 }}>
-            {guests.map(g => (
+            {guests.filter(g => !search || g.name?.toLowerCase().includes(search.toLowerCase())).map(g => (
               <div key={g.id} className="card card-sm"
                 style={{ cursor:'pointer', transition:'transform .15s,box-shadow .15s' }}
                 onClick={() => setViewGuest(g)}
